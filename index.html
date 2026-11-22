@@ -151,6 +151,7 @@ label.l{display:block;font-size:12px;color:var(--mu);margin:10px 0 4px;text-tran
 .sheetbox{background:var(--pn);border:1px solid var(--ln);border-radius:18px;padding:16px;width:min(420px,100%);max-height:88vh;overflow:auto}
 .sheetbox h2{font-size:26px;color:var(--am);margin-bottom:8px}.sheetbox p,.sheetbox li{color:#cdd6ea;font-size:14px}.sheetbox ul{padding-left:18px;margin:6px 0}
 #toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);background:var(--rd);padding:10px 16px;border-radius:12px;display:none;z-index:60;font-weight:700;box-shadow:0 6px 20px #000a}
+#net{position:fixed;top:0;left:0;right:0;padding:calc(env(safe-area-inset-top) + 8px) 12px 8px;text-align:center;font-weight:700;background:var(--rd);color:#fff;display:none;z-index:70;box-shadow:0 4px 14px #0008}#net.ok{background:var(--gr);color:#04210f}
 @keyframes bob{50%{transform:rotate(-4deg) translateY(-5px)}}
 @media(min-width:900px){
  #game{max-width:1120px;display:grid;grid-template-columns:minmax(0,1fr) 380px;grid-template-areas:"hud hud" "stage act" "stage info" "hand info";grid-template-rows:auto auto auto 1fr;gap:12px}
@@ -196,13 +197,14 @@ label.l{display:block;font-size:12px;color:var(--mu);margin:10px 0 4px;text-tran
 </ul><button class="cta" onclick="rules(0)">Anladım</button></div></div>
 <div id="rx" onclick="if(event.target===this)reactPanel(0)"><div class="sheetbox"><h2>Tepki gönder</h2><div class="rxg" id="rxg"></div><button class="alt" style="width:100%;margin-top:10px" onclick="reactPanel(0)">Kapat</button></div></div>
 <div id="reacts"></div>
+<div id="net"></div>
 <div id="toast"></div>
 <script src="/socket.io/socket.io.js"></script>
 <script>
 const $ = s => document.querySelector(s), sock = io();
 const esc = t => String(t).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 const fmt = n => (n < 0 ? '-' : '') + Math.abs(n).toLocaleString('tr-TR') + '$';
-const go = (ev, d) => sock.emit(ev, d || {});
+const go = (ev, d) => { if (!sock.connected) return toast('Bağlantı yok, yeniden bağlanılıyor…'); sock.emit(ev, d || {}); };
 const cardUrl = c => `cards/${c.img}.jpg`;
 let S = null, prevS = null, off = 0, nameDraft = localStorage.getItem('bbName') || '', mode = 'solo', nBots = 3, diffDraft = 'normal', logOpen = false;
 const q0 = new URLSearchParams(location.search).get('oda') || '';
@@ -243,6 +245,14 @@ const toast = m => { const t = $('#toast'); t.textContent = m; t.style.display =
 ['arka-esya', 'arka-depo', 'mezatci'].forEach(n => { new Image().src = `cards/${n}.jpg`; });
 
 sock.on('connect', () => { if (sv.code && sv.token) sock.emit('rejoin', sv); });
+/* ---------- Bağlantı durumu ---------- */
+let everUp = false, netT;
+const net = (msg, ok) => { const n = $('#net'); clearTimeout(netT); if (!msg) { n.style.display = 'none'; return; } n.textContent = msg; n.className = ok ? 'ok' : ''; n.style.display = 'block'; if (ok) netT = setTimeout(() => { n.style.display = 'none'; }, 2000); };
+sock.on('connect', () => { everUp = true; net($('#net').style.display === 'block' ? '✅ Bağlandı' : '', true); });
+sock.on('disconnect', () => net('📡 Bağlantı koptu, yeniden bağlanılıyor…'));
+sock.on('connect_error', () => net(everUp ? '📡 Bağlantı koptu, yeniden bağlanılıyor…' : '⏳ Sunucuya bağlanılıyor, biraz sürebilir…'));
+setTimeout(() => { if (!sock.connected && !everUp) net('⏳ Sunucuya bağlanılıyor, biraz sürebilir…'); }, 2500);
+document.addEventListener('visibilitychange', () => { if (!document.hidden && !sock.connected) sock.connect(); }); // telefon uykudan dönünce hemen yeniden dene
 sock.on('joined', d => { localStorage.setItem('bb', JSON.stringify(d)); Object.assign(sv, d); });
 sock.on('forget', () => { localStorage.removeItem('bb'); delete sv.code; delete sv.token; S = null; render(); });
 sock.on('err', m => { toast(m); sfx.bad(); });

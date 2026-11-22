@@ -16,8 +16,7 @@ Durum: ✅ tamam · 🔧 yapılıyor · ⬜ sırada
 4. ✅ **Oyun sonu ekranı** – kazanan kutlaması (konfeti + altın çerçeve), "en iyi mezat" (en yüksek kâr) ve "en büyük hurda" (oyun sonunda elde kalan en eksi eşya) istatistikleri; `server.js` `r.stats`
 5. ✅ **Hızlı tepkiler** – HUD'daki 💬 düğmesi (odada en az 2 gerçek oyuncu varsa), 12 hazır emoji/cümle, ekranın üstünde 3 sn görünür; sunucuda `REACTS` listesi + 1,2 sn sınır
 6. ✅ **Bot kişilikleri ve zorluk** – kolay / normal / zor (`DIFF` tablosu: teklif çarpanı, tahmin hatası, tepki hızı); solo menüde ve online lobide kurucu seçer; botlar kişiliğine göre tepki verir (`LINES`, `botSay`: teklif ısınınca, kazanınca, hurda / Tahribat çıkınca)
-7. ⬜ **Bağlantı durumu** – "yeniden bağlanıyor" uyarısı
+7. ✅ **Bağlantı durumu** – üstte "yeniden bağlanılıyor" / "Bağlandı" şeridi; bağlantı yokken hamleler gönderilmez; telefon uykudan dönünce hemen yeniden dener
 
 ## Notlar
-- Eski yedekler (`*.bak`) silinebilir: `server.js.bak`, `index.html.bak`, `data.js.bak`
 - Vercel socket.io sunucusunu çalıştırmaz; Render / Railway / Fly.io kullanılmalı
