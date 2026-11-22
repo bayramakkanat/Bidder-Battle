@@ -13,6 +13,7 @@ const MIN = +process.env.MIN_PLAYERS || 3, MAX = 7, START = 5000, FEE = 100, PEN
 const T = +process.env.TIME_SCALE || 1; // sadece test için: süreleri kısaltır
 const ACT_MS = 25000 * T, OPEN_MS = 20000 * T, SELL_MS = 10000 * T, RESULT_MS = 9500 * T, PAY_MS = 30000 * T;
 const rooms = {};
+const REACTS = ['👏', '😂', '😱', '🔥', '😎', '💸', 'Bu benim!', 'Yüksek tutma!', 'Blöf mü?', 'Hızlı ol!', 'Aferin!', 'Hurda çıkacak 😏']; // hazır tepkiler (istemci sıra numarası gönderir)
 const fmt = n => n.toLocaleString('tr-TR') + '$';
 const uid = () => Math.random().toString(36).slice(2, 10);
 const shuffle = a => { a = a.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
@@ -69,7 +70,7 @@ function view(r, me) {
     bidders: r.bidders || [], bid: r.phase === 'bid' ? r.bid : null,
     pay: r.phase === 'pay' ? { who: r.sale.winner, price: r.sale.price, short: r.sale.short } : null,
     res: r.phase === 'result' && r.res ? { text: r.res.text, fx: r.res.fx || [], winner: r.res.winner || null, n: r.res.n || 0, reveal: r.res.reveal || null, at: r.res.at, gain: r.res.winner === me.id ? r.res.gain : null } : null,
-    shield, shieldWho: sale ? sale.winner : null, final: r.final, stats: r.phase === 'over' ? r.stats : null,
+    shield, shieldWho: sale ? sale.winner : null, final: r.final, stats: r.phase === 'over' ? r.stats : null, reacts: REACTS, diff: r.diff || 'normal',
   };
 }
 const emit = r => {
@@ -135,6 +136,7 @@ function startBid(r, bidders) {
 }
 function setBid(r, id, amt, forced) {
   r.bid.amt = amt; r.bid.who = id;
+  if (!r.bid.hot && amt >= 3000) { r.bid.hot = true; botSay(r, 'hot'); }
   r.bid.hist.unshift(`${P(r, id).name}: ${fmt(amt)}${forced ? ' (otomatik açılış)' : ''}`); r.bid.hist = r.bid.hist.slice(0, 5);
   later(r, SELL_MS, () => bidTimeout(r)); emit(r);
 }
@@ -196,6 +198,9 @@ function resolve(r, use) {
   w.items.push(...held); r.lot = [];
   const gv = sum(held), deal = { name: w.name, storage: r.storage.name, price, value: gv, profit: gv - price, n: held.length }; // oyun sonu istatistiği: en kârlı mezat
   if (r.stats && (!r.stats.best || deal.profit > r.stats.best.profit)) r.stats.best = deal;
+  if (wreck) botSay(r, 'wreck'); // bot tepkileri
+  else if (deal.profit > 1500) w.bot ? botSay(r, 'win', w.id) : botSay(r, 'good');
+  else if (deal.profit < -500) botSay(r, 'junk');
   const text = `${w.name} mezatı ${fmt(price)} ile kazandı.`;
   log(r, text); fx.forEach(t => log(r, t));
   finish(r, { text, fx, winner: w.id, gain: held, n: held.length });
@@ -278,8 +283,8 @@ const onConn = sock => {
   const mk = name => ({ id: uid(), token: uid() + uid(), name: String(name || '').trim().slice(0, 14) || 'Oyuncu', money: 0, items: [], on: true, turnsLed: 0, eliminated: false });
   const newRoom = p => { let code; do { code = Array.from({ length: 4 }, () => 'ABCDEFGHJKLMNPRSTUVYZ'[Math.floor(Math.random() * 21)]).join(''); } while (rooms[code]); return rooms[code] = { code, host: p.id, players: [p], phase: 'lobby', log: [], pending: [] }; };
   sock.on('create', ({ name } = {}) => { const p = mk(name); bind(newRoom(p), p); });
-  sock.on('solo', ({ name, bots } = {}) => { // tek tuşla botlara karşı oyun
-    const p = mk(name), room = newRoom(p); bind(room, p);
+  sock.on('solo', ({ name, bots, diff } = {}) => { // tek tuşla botlara karşı oyun
+    const p = mk(name), room = newRoom(p); bind(room, p); room.diff = DIFF[diff] ? diff : 'normal';
     const n = Math.max(MIN - 1, Math.min(MAX - 1, Math.floor(+bots) || 3));
     for (let i = 0; i < n; i++) addBot(room);
     startGame(room);
@@ -317,6 +322,16 @@ const onConn = sock => {
     else { Object.assign(p, { bot: true, on: true, style: 'dengeli', noise: 1, noiseTurn: -1 }); p.name = p.name.slice(0, 11) + ' 🤖'; } // oyundan ayrılan yerine bot oynar
     if (!dropIfEmpty(room)) emit(room);
   });
+  sock.on('setDiff', ({ d } = {}) => { // bot zorluğu (sadece kurucu, oyun dışında)
+    if (!r || r.host !== me.id || !['lobby', 'over'].includes(r.phase) || !DIFF[d]) return;
+    r.diff = d; emit(r);
+  });
+  sock.on('react', ({ i } = {}) => { // hazır tepki: odadaki gerçek oyunculara iletilir (1,2 sn'de bir)
+    const t = REACTS[Math.floor(+i)];
+    if (!r || !me || !t || Date.now() - (me.lastReact || 0) < 1200) return;
+    me.lastReact = Date.now();
+    r.players.forEach(p => { if (p.on && p.sid && !p.bot) io.to(p.sid).emit('react', { id: me.id, name: me.name, t }); });
+  });
   for (const ev of Object.keys(A)) sock.on(ev, d => { if (r && me) A[ev](r, me, d || {}, err); });
   sock.on('disconnect', () => {
     if (!me) return; const room = r, p = me; p.on = false; emit(room);
@@ -332,6 +347,21 @@ io.on('connection', onConn);
 // ---- Botlar ----
 const BOTS = [['Kurnaz Kemal', 'temkinli'], ['Dengeli Deniz', 'dengeli'], ['Gözü Kara Gül', 'gozukara'], ['Blöfçü Bora', 'gozukara'], ['Hesapçı Hale', 'temkinli'], ['Şanslı Selim', 'dengeli']];
 const MARG = { temkinli: 0.55, dengeli: 0.85, gozukara: 1.15 }; // tahmin edilen değerin kaçına kadar teklif verir
+// Zorluk: m = teklif çarpanı, n = tahmin hatası (büyüdükçe bot daha şaşırtıcı), act = bot her saniye hamle yapma olasılığı (reflekslerini belirler)
+const DIFF = { kolay: { m: 0.85, n: 0.7, act: 0.35 }, normal: { m: 1, n: 0.3, act: 0.6 }, zor: { m: 1.1, n: 0.1, act: 0.85 } };
+// Bot tepkileri (kişiliğe göre): hot = teklif ısınınca, win = bot kazanınca, good = biri kazançlı çıkınca, junk = biri hurda alınca, wreck = Tahribat
+const LINES = {
+  hot: { temkinli: ['Bu fiyat çok yüksek!', 'Blöf mü?'], dengeli: ['💸', 'Hmm, ısınıyoruz!'], gozukara: ['Ben varım! 🔥', 'Daha yükseği var mı?'] },
+  win: { temkinli: ['Hesabım tuttu 😎'], dengeli: ['Hayırlı olsun bana 😎'], gozukara: ['Bu benim! 🔥'] },
+  good: ['👏', 'Aferin!', 'Vay be! 😮'], junk: ['😂', 'Hurda çıktı 😏', 'Eyvah!'], wreck: ['😱', 'Tahribat mı?!'],
+};
+function botSay(r, kind, only) { // rastgele bir bot (5 sn'de bir, %55 olasılıkla) kısa bir tepki gönderir
+  const bots = r.players.filter(p => p.bot && !p.eliminated && (!only || p.id === only) && Date.now() - (p.lastSay || 0) > 5000);
+  if (!bots.length || Math.random() > 0.55) return;
+  const b = bots[Math.floor(Math.random() * bots.length)], L = LINES[kind], arr = Array.isArray(L) ? L : (L[b.style] || L.dengeli), t = arr[Math.floor(Math.random() * arr.length)];
+  b.lastSay = Date.now();
+  setTimeout(() => r.players.forEach(p => { if (p.on && p.sid && !p.bot) io.to(p.sid).emit('react', { id: b.id, name: b.name, t }); }), 800 + Math.random() * 1200);
+}
 const AVG = ITEMS.reduce((s, c) => s + c.value, 0) / ITEMS.length, WRECKS = ITEMS.filter(c => c.effect === 'wreck').length;
 function botAct(r, p, idle) { // idle: süresi dolan/çevrimdışı gerçek oyuncu için güvenli varsayılan hamle
   const v = view(r, p), id = p.id;
@@ -341,11 +371,12 @@ function botAct(r, p, idle) { // idle: süresi dolan/çevrimdışı gerçek oyun
   if (v.phase === 'shield' && v.shield) return A.shield(r, p, { use: v.shield.max });
   if (v.phase === 'pay' && v.pay.who === id) return A.pay(r, p, { ids: autoPick(p, v.pay.short) });
   if (idle) return v.phase === 'join' && v.cur === id ? A.joinAuction(r, p, { yes: false }) : undefined;
-  if (p.noiseTurn !== r.turn) { p.noiseTurn = r.turn; p.noise = 0.85 + Math.random() * 0.3; }
+  const D = DIFF[r.diff] || DIFF.normal;
+  if (p.noiseTurn !== r.turn) { p.noiseTurn = r.turn; p.noise = 1 + (Math.random() - 0.5) * D.n; }
   let known = 0, k = 0, wreck = false;
   v.lot.forEach(l => { if (!l.card) k++; else if (l.card.effect === 'wreck') wreck = true; else known += l.card.value; });
   const safe = Math.pow(1 - WRECKS / ITEMS.length, k); // bilinmeyen kartlarda Tahribat çıkmama ihtimali
-  const cap = Math.min(wreck ? 0 : Math.round(safe * (known + k * AVG) * MARG[p.style] * p.noise / 100) * 100, worth(p));
+  const cap = Math.min(wreck ? 0 : Math.round(safe * (known + k * AVG) * MARG[p.style] * D.m * p.noise / 100) * 100, worth(p));
   if (v.phase === 'join' && v.cur === id) return A.joinAuction(r, p, { yes: cap >= 300 && p.money >= FEE });
   if (v.phase === 'bid' && v.bidders.includes(id) && v.bid.who !== id) {
     const step = Math.max(100, Math.round(cap / 8 * (0.5 + Math.random()) / 100) * 100);
@@ -357,7 +388,7 @@ setInterval(() => Object.values(rooms).forEach(r => {
   if (!r.players.some(p => !p.bot && p.on)) { r.idle = r.idle || Date.now(); if (Date.now() - r.idle > 600000) { clear(r); delete rooms[r.code]; } return; } // 10 dk boş kalan oda silinir
   r.idle = 0;
   if (!['prep', 'peekBefore', 'peekAfter', 'join', 'bid', 'shield', 'pay'].includes(r.phase) || Date.now() < (r.hold || 0)) return;
-  r.players.filter(p => p.bot && !p.eliminated).forEach(p => { if (Math.random() < 0.6) try { botAct(r, p); } catch (e) { console.error('bot', e); } });
+  r.players.filter(p => p.bot && !p.eliminated).forEach(p => { if (Math.random() < (DIFF[r.diff] || DIFF.normal).act) try { botAct(r, p); } catch (e) { console.error('bot', e); } });
 }), 1000 * T);
 
 const PORT = process.env.PORT || 3000;

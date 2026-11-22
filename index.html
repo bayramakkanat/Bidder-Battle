@@ -140,8 +140,13 @@ label.l{display:block;font-size:12px;color:var(--mu);margin:10px 0 4px;text-tran
 .empty{color:var(--mu);padding:14px;text-align:center;width:100%}
 #logz details{background:#0d162699;border-radius:12px;padding:8px 12px}#logz summary{cursor:pointer;font-weight:700;color:var(--mu)}
 #logz div{font-size:13px;color:#b5bfd4;margin:3px 0}
-#zoom,#sheet,#rules{position:fixed;inset:0;background:#000c;display:none;place-items:center;z-index:50;padding:14px}
-#zoom.on,#sheet.on,#rules.on{display:grid}
+#zoom,#sheet,#rules,#rx{position:fixed;inset:0;background:#000c;display:none;place-items:center;z-index:50;padding:14px}
+#zoom.on,#sheet.on,#rules.on,#rx.on{display:grid}
+.rxg{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}.rxg button{font-size:18px;padding:12px 8px}
+#reacts{position:fixed;top:calc(env(safe-area-inset-top) + 64px);left:50%;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;gap:6px;z-index:55;pointer-events:none;width:max-content;max-width:92vw}
+.rxb{background:#fffdf3;color:#2a2108;border-radius:14px;padding:6px 14px;font-weight:700;box-shadow:0 6px 18px #0008;animation:rxin 3s forwards;text-align:center}
+.rxb small{display:block;color:#7a6a2a;font-size:11px;line-height:1.1}.rxb.em b{font-size:30px;line-height:1.1}
+@keyframes rxin{0%{opacity:0;transform:translateY(12px) scale(.8)}10%{opacity:1;transform:none}80%{opacity:1}100%{opacity:0;transform:translateY(-10px)}}
 #zoom img{max-width:min(92vw,520px);max-height:90vh;border-radius:18px;box-shadow:0 20px 60px #000}
 .sheetbox{background:var(--pn);border:1px solid var(--ln);border-radius:18px;padding:16px;width:min(420px,100%);max-height:88vh;overflow:auto}
 .sheetbox h2{font-size:26px;color:var(--am);margin-bottom:8px}.sheetbox p,.sheetbox li{color:#cdd6ea;font-size:14px}.sheetbox ul{padding-left:18px;margin:6px 0}
@@ -189,6 +194,8 @@ label.l{display:block;font-size:12px;color:var(--mu);margin:10px 0 4px;text-tran
 <li><b>Eşyalar:</b> Hurda eşyaların değeri <b>eksidir</b>! Değerli ve koleksiyon eşyaları servet kazandırır.</li>
 <li><b>Olaylar:</b> <b>Tahribat</b> depoyu ve tüm eşyaları geçersiz kılar; <b>Sahte Altın</b> en pahalı eşyayı geçersiz kılar; <b>Güvenlik Ağı</b> bir Olay kartını iptal eder.</li>
 </ul><button class="cta" onclick="rules(0)">Anladım</button></div></div>
+<div id="rx" onclick="if(event.target===this)reactPanel(0)"><div class="sheetbox"><h2>Tepki gönder</h2><div class="rxg" id="rxg"></div><button class="alt" style="width:100%;margin-top:10px" onclick="reactPanel(0)">Kapat</button></div></div>
+<div id="reacts"></div>
 <div id="toast"></div>
 <script src="/socket.io/socket.io.js"></script>
 <script>
@@ -197,7 +204,7 @@ const esc = t => String(t).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;',
 const fmt = n => (n < 0 ? '-' : '') + Math.abs(n).toLocaleString('tr-TR') + '$';
 const go = (ev, d) => sock.emit(ev, d || {});
 const cardUrl = c => `cards/${c.img}.jpg`;
-let S = null, prevS = null, off = 0, nameDraft = localStorage.getItem('bbName') || '', mode = 'solo', nBots = 3, logOpen = false;
+let S = null, prevS = null, off = 0, nameDraft = localStorage.getItem('bbName') || '', mode = 'solo', nBots = 3, diffDraft = 'normal', logOpen = false;
 const q0 = new URLSearchParams(location.search).get('oda') || '';
 let codeDraft = q0.toUpperCase(); if (q0) mode = 'online';
 const sv = JSON.parse(localStorage.getItem('bb') || '{}');
@@ -219,6 +226,10 @@ const sfx = (() => {
 const toggleSound = () => { sfx.toggle(); $('#sndBtn').textContent = sfx.mute ? '🔇 Ses kapalı' : '🔊 Ses açık'; };
 const sheet = on => { $('#sndBtn').textContent = sfx.mute ? '🔇 Ses kapalı' : '🔊 Ses açık'; $('#sheet').classList.toggle('on', !!on); };
 const rules = on => $('#rules').classList.toggle('on', !!on);
+/* ---------- Hızlı tepkiler ---------- */
+let rxAt = 0;
+const reactPanel = on => { if (on === 0) return $('#rx').classList.remove('on'); $('#rxg').innerHTML = (S && S.reacts || []).map((t, i) => `<button class="alt" onclick="sendReact(${i})">${esc(t)}</button>`).join(''); $('#rx').classList.add('on'); };
+const sendReact = i => { if (Date.now() - rxAt < 1200) return toast('Biraz yavaş!'); rxAt = Date.now(); go('react', { i }); reactPanel(0); };
 /* ---------- Tam ekran ---------- */
 const fsRoot = document.documentElement, fsOn = () => document.fullscreenElement || document.webkitFullscreenElement;
 const toggleFs = () => {
@@ -235,6 +246,12 @@ sock.on('connect', () => { if (sv.code && sv.token) sock.emit('rejoin', sv); });
 sock.on('joined', d => { localStorage.setItem('bb', JSON.stringify(d)); Object.assign(sv, d); });
 sock.on('forget', () => { localStorage.removeItem('bb'); delete sv.code; delete sv.token; S = null; render(); });
 sock.on('err', m => { toast(m); sfx.bad(); });
+sock.on('react', d => {
+  const box = $('#reacts'), el = document.createElement('div'), em = [...d.t].length <= 2;
+  el.className = 'rxb' + (em ? ' em' : ''); el.innerHTML = `<small>${esc(d.name)}</small><b>${esc(d.t)}</b>`;
+  box.appendChild(el); while (box.children.length > 4) box.firstChild.remove();
+  setTimeout(() => el.remove(), 3100); sfx.tick();
+});
 sock.on('state', s => { prevS = S; S = s; off = s.now - Date.now(); render(); });
 
 const zc = {};
@@ -250,7 +267,11 @@ function autoPickC(items, need) { // para üstü verilmediğinden en az fazlalı
 }
 
 /* ---------- Menü ekranları ---------- */
-const startSolo = () => { localStorage.removeItem('bb'); go('solo', { name: nameDraft, bots: nBots }); };
+const startSolo = () => { localStorage.removeItem('bb'); go('solo', { name: nameDraft, bots: nBots, diff: diffDraft }); };
+const DIFFS = [['kolay', '😊 Kolay'], ['normal', '🙂 Normal'], ['zor', '😈 Zor']];
+const diffPills = (cur, fn) => `<div class="pills">${DIFFS.map(([k, t]) => `<button class="pill ${k === cur ? 'on' : ''}" onclick="${fn}('${k}')">${t}</button>`).join('')}</div>`;
+const setDiffDraft = d => { diffDraft = d; zc.menu = null; render(); };
+const setDiffHost = d => go('setDiff', { d });
 const setMode = m => { mode = m; zc.menu = null; render(); };
 const setBots = n => { nBots = n; zc.menu = null; render(); };
 const leave = () => { go('leave'); localStorage.removeItem('bb'); delete sv.code; delete sv.token; S = prevS = null; sheet(0); lotKey = null; zc.menu = null; render(); };
@@ -261,20 +282,20 @@ function menuHTML() {
   if (!s) return `<div class="logo"><img src="cards/mezatci.jpg" alt=""><div><h1>Depo<br><span>Savaşları</span></h1><p>Depoları mezatla kap, hazineyi bul, hurdaya kanma!</p></div></div>
   <div class="panel"><label class="l">Oyuncu adı</label><input maxlength="14" placeholder="Adın" value="${esc(nameDraft)}" oninput="nameDraft=this.value;localStorage.setItem('bbName',this.value)">
   <div class="tabs"><button class="tab ${mode === 'solo' ? 'on' : ''}" onclick="setMode('solo')">🤖 Botlara karşı</button><button class="tab ${mode === 'online' ? 'on' : ''}" onclick="setMode('online')">🌐 Online</button></div>
-  ${mode === 'solo' ? `<label class="l">Rakip sayısı</label><div class="pills">${[2, 3, 4, 5, 6].map(n => `<button class="pill ${n === nBots ? 'on' : ''}" onclick="setBots(${n})">${n}</button>`).join('')}</div><button class="cta" onclick="startSolo()">🔨 Oyuna başla</button>`
+  ${mode === 'solo' ? `<label class="l">Rakip sayısı</label><div class="pills">${[2, 3, 4, 5, 6].map(n => `<button class="pill ${n === nBots ? 'on' : ''}" onclick="setBots(${n})">${n}</button>`).join('')}</div><label class="l">Bot zorluğu</label>${diffPills(diffDraft, 'setDiffDraft')}<button class="cta" onclick="startSolo()">🔨 Oyuna başla</button>`
     : `<button class="cta" onclick="go('create',{name:nameDraft})">➕ Yeni oda kur</button><div class="or">— veya arkadaşının kodunu gir —</div><input placeholder="ODA KODU" maxlength="4" value="${esc(codeDraft)}" style="text-transform:uppercase;text-align:center;letter-spacing:.3em;font-weight:800" oninput="codeDraft=this.value"><div class="row"><button class="alt" onclick="go('join',{name:nameDraft,code:codeDraft})">Odaya katıl</button></div>`}
   </div><div class="center"><button class="link" onclick="rules(1)">📖 Nasıl oynanır?</button><button class="link" onclick="toggleFs()">⛶ Tam ekran</button></div>`;
   if (s.phase === 'lobby') {
     const host = s.host === s.me.id;
     return `<div class="logo"><h1 style="font-size:34px">Oda <span>hazır</span></h1></div><div class="panel"><small>ODA KODU</small><div class="code">${s.code}</div><button class="alt cta" onclick="copyLink()">🔗 Davet bağlantısını kopyala</button></div>
     <div class="panel"><div class="plist">${s.players.map(plHTML).join('')}</div><small>${s.players.length}/${s.max} oyuncu · en az ${s.min} gerekli</small></div>
-    ${host ? `<div class="row"><button class="alt" ${s.players.length >= s.max ? 'disabled' : ''} onclick="go('addBot')">🤖 Bot ekle</button></div><button class="cta" ${s.players.length < s.min ? 'disabled' : ''} onclick="go('start')">🔨 Oyunu başlat</button>` : '<div class="wait">Kurucunun oyunu başlatması bekleniyor…</div>'}
+    ${host ? `<div class="row"><button class="alt" ${s.players.length >= s.max ? 'disabled' : ''} onclick="go('addBot')">🤖 Bot ekle</button></div>${s.players.some(p => p.bot) ? '<label class="l">Bot zorluğu</label>' + diffPills(s.diff, 'setDiffHost') : ''}<button class="cta" ${s.players.length < s.min ? 'disabled' : ''} onclick="go('start')">🔨 Oyunu başlat</button>` : '<div class="wait">Kurucunun oyunu başlatması bekleniyor…</div>'}
     <div class="center"><button class="link" onclick="leave()">Odadan ayrıl</button></div>`;
   }
   const f = s.final, host = s.host === s.me.id, win = f.find(p => !p.out), st = s.stats || {}, bd = st.best && st.best.profit > 0 ? st.best : null, jk = st.junk;
   const conf = Array.from({ length: 30 }, (_, i) => `<i style="left:${(i * 37 + 5) % 100}%;background:${['#f6c445', '#2fd0df', '#35c46c', '#e5484d', '#fff'][i % 5]};animation-delay:${(i * 13 % 20) / 10}s;animation-duration:${(2.4 + (i * 7 % 10) / 5).toFixed(1)}s"></i>`).join('');
   return `<div class="confetti">${conf}</div><div class="logo"><h1 style="font-size:40px">🏆 Oyun <span>bitti</span></h1></div>${win ? `<div class="panel winner"><small>KAZANAN</small><div class="ttl">👑 ${esc(win.name)}${win.id === s.me.id ? ' (sen)' : ''}</div><div class="tot">${fmt(win.total)}</div></div>` : ''}${bd || jk ? `<div class="panel stats">${bd ? `<div class="st"><span>🔨</span><div><small>EN İYİ MEZAT</small><b>${esc(bd.name)} · ${esc(bd.storage)}</b><small>${fmt(bd.price)} ödedi, ${fmt(bd.value)} değerinde eşya aldı (+${fmt(bd.profit)} kâr)</small></div></div>` : ''}${jk ? `<div class="st"><img src="${cardUrl(jk.card)}" alt=""><div><small>EN BÜYÜK HURDA</small><b>${esc(jk.card.name)}</b><small>${esc(jk.name)} elinde kaldı (${fmt(jk.card.value)})</small></div></div>` : ''}</div>` : ''}${f.map((p, i) => `<div class="panel rank" style="${i === 0 && !p.out ? 'border-color:var(--am)' : ''}"><div class="no">${p.out ? '💀' : i + 1}</div><div><b>${esc(p.name)}${p.id === s.me.id ? ' (sen)' : ''}</b><br><small>Para ${fmt(p.money)} + Eşya ${fmt(p.iv)}${p.out ? ' · elendi' : ''}</small></div><div class="tot">${fmt(p.total)}</div>${p.items.length ? `<div class="fan">${p.items.map(c => `<div class="hc" data-z="${cardUrl(c)}"><img src="${cardUrl(c)}" alt="${esc(c.name)}" loading="lazy"></div>`).join('')}</div>` : ''}</div>`).join('')}
-  ${host ? '<button class="cta" onclick="go(\'start\')">🔁 Yeni oyun</button>' : '<div class="wait">Kurucunun yeni oyun başlatması bekleniyor…</div>'}<div class="center"><button class="link" onclick="leave()">Ana menü</button></div>`;
+  ${host && f.some(p => p.bot) ? '<label class="l">Bot zorluğu</label>' + diffPills(s.diff, 'setDiffHost') : ''}${host ? '<button class="cta" onclick="go(\'start\')">🔁 Yeni oyun</button>' : '<div class="wait">Kurucunun yeni oyun başlatması bekleniyor…</div>'}<div class="center"><button class="link" onclick="leave()">Ana menü</button></div>`;
 }
 
 /* ---------- Masa / animasyonlar ---------- */
@@ -407,7 +428,7 @@ function renderGame() {
   const s = S, me = s.me, iAud = s.aud === me.id;
   lotMode = s.phase === 'prep' && iAud ? (s.step === 'flip' ? 'flip' : 'peek') : (s.phase === 'peekBefore' || s.phase === 'peekAfter') && s.pending.includes(me.id) ? 'peek' : null;
   const dm = prevS && prevS.me && prevS.gid === s.gid ? me.money - prevS.me.money : 0;
-  zone('hud', `<button class="alt ib" onclick="sheet(1)">☰</button><button class="alt ib" onclick="toggleFs()" title="Tam ekran (F)">⛶</button><div class="turn"><small>TUR</small><b>${s.turn}</b>/${s.total}</div><div class="who"><small>MEZATÇI</small><b>${nm(s.aud)}${iAud ? ' (sen)' : ''}</b></div><div class="wallet ${dm > 0 ? 'up' : dm < 0 ? 'down' : ''}"><small>KASA</small><b>${fmt(me.money)}</b></div>`);
+  zone('hud', `<button class="alt ib" onclick="sheet(1)">☰</button><button class="alt ib" onclick="toggleFs()" title="Tam ekran (F)">⛶</button>${s.players.some(p => !p.bot && p.id !== me.id) ? '<button class="alt ib" onclick="reactPanel()" title="Tepki gönder">💬</button>' : ''}<div class="turn"><small>TUR</small><b>${s.turn}</b>/${s.total}</div><div class="who"><small>MEZATÇI</small><b>${nm(s.aud)}${iAud ? ' (sen)' : ''}</b></div><div class="wallet ${dm > 0 ? 'up' : dm < 0 ? 'down' : ''}"><small>KASA</small><b>${fmt(me.money)}</b></div>`);
   $('#cS').textContent = s.decks.storage; $('#cI').textContent = s.decks.item;
   syncStage();
   const p = panels(); zone('pA', p.a); zone('pB', p.b); $('#act').classList.toggle('act', p.act);
