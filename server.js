@@ -69,7 +69,7 @@ function view(r, me) {
     bidders: r.bidders || [], bid: r.phase === 'bid' ? r.bid : null,
     pay: r.phase === 'pay' ? { who: r.sale.winner, price: r.sale.price, short: r.sale.short } : null,
     res: r.phase === 'result' && r.res ? { text: r.res.text, fx: r.res.fx || [], winner: r.res.winner || null, n: r.res.n || 0, reveal: r.res.reveal || null, at: r.res.at, gain: r.res.winner === me.id ? r.res.gain : null } : null,
-    shield, shieldWho: sale ? sale.winner : null, final: r.final,
+    shield, shieldWho: sale ? sale.winner : null, final: r.final, stats: r.phase === 'over' ? r.stats : null,
   };
 }
 const emit = r => {
@@ -96,7 +96,7 @@ function startGame(r) {
   r.players.forEach(p => Object.assign(p, { money: START, items: [], eliminated: false, turnsLed: 0 }));
   r.itemDeck = shuffle(ITEMS); r.discard = []; r.storageDeck = shuffle(STORAGES);
   r.gid = (r.gid || 0) + 1; r.turn = 0; r.total = r.players.length * 2; r.seat = Math.floor(Math.random() * r.players.length) - 1;
-  r.log = []; r.final = null; r.sale = null; nextTurn(r);
+  r.log = []; r.final = null; r.sale = null; r.stats = { best: null, junk: null }; nextTurn(r);
 }
 function nextTurn(r) {
   clear(r);
@@ -194,6 +194,8 @@ function resolve(r, use) {
     else fx.push('SAHTE ALTIN! Ama geçersiz kılınacak eşya yoktu.');
   }
   w.items.push(...held); r.lot = [];
+  const gv = sum(held), deal = { name: w.name, storage: r.storage.name, price, value: gv, profit: gv - price, n: held.length }; // oyun sonu istatistiği: en kârlı mezat
+  if (r.stats && (!r.stats.best || deal.profit > r.stats.best.profit)) r.stats.best = deal;
   const text = `${w.name} mezatı ${fmt(price)} ile kazandı.`;
   log(r, text); fx.forEach(t => log(r, t));
   finish(r, { text, fx, winner: w.id, gain: held, n: held.length });
@@ -202,6 +204,9 @@ function endGame(r) {
   clear(r); r.phase = 'over';
   r.final = r.players.map(p => { const iv = sum(p.items); return { id: p.id, name: p.name, bot: !!p.bot, money: p.money, iv, total: p.money + iv, items: p.items, out: p.eliminated }; })
     .sort((a, b) => (a.out - b.out) || b.total - a.total);
+  let junk = null; // oyun sonunda elde kalan en değersiz (en eksi) eşya
+  r.players.forEach(p => p.items.forEach(c => { if (c.value < 0 && (!junk || c.value < junk.card.value)) junk = { name: p.name, card: { name: c.name, img: c.img, value: c.value } }; }));
+  r.stats = Object.assign(r.stats || {}, { junk });
   emit(r);
 }
 

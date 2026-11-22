@@ -56,6 +56,14 @@ label.l{display:block;font-size:12px;color:var(--mu);margin:10px 0 4px;text-tran
 .rank .no{font:400 34px Impact,sans-serif;color:var(--am)}
 .rank .tot{font:400 26px Impact,sans-serif;color:var(--gr)}
 .fan{display:flex;overflow-x:auto;padding:8px 2px 4px;grid-column:1/-1}.fan .hc{width:64px;margin-right:-18px;flex:none}
+/* Oyun sonu: kazanan kutlaması ve istatistikler */
+.confetti{position:fixed;inset:0;pointer-events:none;overflow:hidden;z-index:5}
+.confetti i{position:absolute;top:-16px;width:9px;height:14px;border-radius:2px;opacity:.9;animation:fall linear 3 both}
+@keyframes fall{to{transform:translateY(110vh) rotate(720deg)}}
+.winner{text-align:center;border-color:var(--am);box-shadow:0 0 0 2px #f6c44555,0 8px 24px #0005;animation:glow 1.6s infinite}
+.winner .ttl{font-size:34px;color:var(--am);margin:2px 0}.winner .tot{font:400 36px Impact,sans-serif;color:var(--gr)}
+.stats{display:grid;gap:12px}.st{display:flex;align-items:center;gap:12px}.st>span{font-size:34px;width:44px;text-align:center;flex:none}.st img{width:44px;flex:none;border-radius:7%/5%;box-shadow:0 3px 8px #000a}.st b{display:block}.st small{display:block}
+@media(prefers-reduced-motion:reduce){.confetti{display:none}}
 /* ---------- Oyun ---------- */
 #game{max-width:560px;margin:0 auto;padding:10px;display:flex;flex-direction:column;gap:10px}
 #hud{display:flex;align-items:center;gap:10px;background:linear-gradient(var(--pn2),var(--pn));border:1px solid var(--ln);border-radius:16px;padding:8px 10px}
@@ -95,7 +103,12 @@ label.l{display:block;font-size:12px;color:var(--mu);margin:10px 0 4px;text-tran
 @keyframes pulse{50%{transform:translateY(-4px)}}
 .flip{position:relative;width:100%;height:100%;transform-style:preserve-3d;transition:transform .65s cubic-bezier(.3,.7,.2,1)}
 .flip.up{transform:rotateY(180deg)}
-.face{position:absolute;inset:0;backface-visibility:hidden;-webkit-backface-visibility:hidden;border-radius:7%/5%;overflow:hidden;box-shadow:0 5px 14px #000a;background:#243252}
+.face{position:absolute;inset:0;backface-visibility:hidden;-webkit-backface-visibility:hidden;border-radius:7%/5%;overflow:hidden;box-shadow:0 6px 16px #000b,0 2px 4px #0008;background:#243252}
+/* Kart görünümü: yumuşak kenar, parlama ve derinlik */
+.face:after,.hc:after{content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;z-index:2;background:linear-gradient(115deg,#fff0 28%,#ffffff30 46%,#fff0 62%),linear-gradient(180deg,#ffffff22 0,#fff0 32%,#fff0 68%,#00000033 100%);box-shadow:inset 0 0 0 1px #ffffff2e,inset 0 0 12px #0007,inset 0 1px 0 #ffffff55}
+.hc{position:relative}
+.hc:hover{box-shadow:0 14px 22px #000c}
+.stack img,.ci img,.mini{border-radius:7%/5%}
 .face img{width:100%;height:100%;object-fit:cover;display:block}.face.front{transform:rotateY(180deg)}
 .eye{display:none;position:absolute;right:-4px;top:-6px;z-index:3;background:#000b;border:1px solid #fff5;border-radius:12px;padding:1px 6px;font-style:normal;font-size:13px}
 .slot.peeked .eye{display:block}.slot.peeked .face.front{box-shadow:0 0 0 3px var(--tl),0 5px 14px #000a}
@@ -258,8 +271,9 @@ function menuHTML() {
     ${host ? `<div class="row"><button class="alt" ${s.players.length >= s.max ? 'disabled' : ''} onclick="go('addBot')">🤖 Bot ekle</button></div><button class="cta" ${s.players.length < s.min ? 'disabled' : ''} onclick="go('start')">🔨 Oyunu başlat</button>` : '<div class="wait">Kurucunun oyunu başlatması bekleniyor…</div>'}
     <div class="center"><button class="link" onclick="leave()">Odadan ayrıl</button></div>`;
   }
-  const f = s.final, host = s.host === s.me.id;
-  return `<div class="logo"><h1 style="font-size:40px">🏆 Oyun <span>bitti</span></h1></div>${f.map((p, i) => `<div class="panel rank" style="${i === 0 && !p.out ? 'border-color:var(--am)' : ''}"><div class="no">${p.out ? '💀' : i + 1}</div><div><b>${esc(p.name)}${p.id === s.me.id ? ' (sen)' : ''}</b><br><small>Para ${fmt(p.money)} + Eşya ${fmt(p.iv)}${p.out ? ' · elendi' : ''}</small></div><div class="tot">${fmt(p.total)}</div>${p.items.length ? `<div class="fan">${p.items.map(c => `<div class="hc" data-z="${cardUrl(c)}"><img src="${cardUrl(c)}" alt="${esc(c.name)}" loading="lazy"></div>`).join('')}</div>` : ''}</div>`).join('')}
+  const f = s.final, host = s.host === s.me.id, win = f.find(p => !p.out), st = s.stats || {}, bd = st.best && st.best.profit > 0 ? st.best : null, jk = st.junk;
+  const conf = Array.from({ length: 30 }, (_, i) => `<i style="left:${(i * 37 + 5) % 100}%;background:${['#f6c445', '#2fd0df', '#35c46c', '#e5484d', '#fff'][i % 5]};animation-delay:${(i * 13 % 20) / 10}s;animation-duration:${(2.4 + (i * 7 % 10) / 5).toFixed(1)}s"></i>`).join('');
+  return `<div class="confetti">${conf}</div><div class="logo"><h1 style="font-size:40px">🏆 Oyun <span>bitti</span></h1></div>${win ? `<div class="panel winner"><small>KAZANAN</small><div class="ttl">👑 ${esc(win.name)}${win.id === s.me.id ? ' (sen)' : ''}</div><div class="tot">${fmt(win.total)}</div></div>` : ''}${bd || jk ? `<div class="panel stats">${bd ? `<div class="st"><span>🔨</span><div><small>EN İYİ MEZAT</small><b>${esc(bd.name)} · ${esc(bd.storage)}</b><small>${fmt(bd.price)} ödedi, ${fmt(bd.value)} değerinde eşya aldı (+${fmt(bd.profit)} kâr)</small></div></div>` : ''}${jk ? `<div class="st"><img src="${cardUrl(jk.card)}" alt=""><div><small>EN BÜYÜK HURDA</small><b>${esc(jk.card.name)}</b><small>${esc(jk.name)} elinde kaldı (${fmt(jk.card.value)})</small></div></div>` : ''}</div>` : ''}${f.map((p, i) => `<div class="panel rank" style="${i === 0 && !p.out ? 'border-color:var(--am)' : ''}"><div class="no">${p.out ? '💀' : i + 1}</div><div><b>${esc(p.name)}${p.id === s.me.id ? ' (sen)' : ''}</b><br><small>Para ${fmt(p.money)} + Eşya ${fmt(p.iv)}${p.out ? ' · elendi' : ''}</small></div><div class="tot">${fmt(p.total)}</div>${p.items.length ? `<div class="fan">${p.items.map(c => `<div class="hc" data-z="${cardUrl(c)}"><img src="${cardUrl(c)}" alt="${esc(c.name)}" loading="lazy"></div>`).join('')}</div>` : ''}</div>`).join('')}
   ${host ? '<button class="cta" onclick="go(\'start\')">🔁 Yeni oyun</button>' : '<div class="wait">Kurucunun yeni oyun başlatması bekleniyor…</div>'}<div class="center"><button class="link" onclick="leave()">Ana menü</button></div>`;
 }
 
