@@ -4,8 +4,17 @@ const { ITEMS, STORAGES } = require('./data');
 const app = express();
 app.get('/', (q, s) => s.sendFile(__dirname + '/index.html'));
 app.get('/healthz', (q, s) => s.send('ok')); // Render sağlık kontrolü
+app.get('/cards.json', (q, s) => { // kart görsellerinin listesi (istemci arka planda önceden yükler)
+  try { s.set('Cache-Control', 'public, max-age=3600').json([...new Set(require('fs').readdirSync(__dirname + '/cards').filter(f => /\.(jpe?g|webp|png)$/i.test(f)).map(f => f.replace(/\.webp$/i, '.jpg')))]); } catch (e) { s.json([]); }
+});
 const STATIC = ['manifest.webmanifest', 'sw.js', 'icon.svg', 'icon-192.png', 'icon-512.png', 'apple-touch-icon.png'];
 STATIC.forEach(f => app.get('/' + f, (q, s) => s.sendFile(__dirname + '/' + f, err => { if (err && !s.headersSent) s.status(404).end(); })));
+const fs = require('fs');
+app.use('/cards', (q, s, next) => { // tarayıcı WebP destekliyorsa ve .webp dosyası varsa, .jpg isteklerine WebP gönder (görünüm aynı, boyut ~yarı)
+  const m = /^\/([a-z0-9-]+)\.jpg$/i.exec(q.path);
+  if (m && /image\/webp/.test(q.headers.accept || '') && fs.existsSync(__dirname + '/cards/' + m[1] + '.webp')) return s.set({ 'Vary': 'Accept', 'Cache-Control': 'public, max-age=604800' }).type('image/webp').sendFile(__dirname + '/cards/' + m[1] + '.webp');
+  next();
+});
 app.use('/cards', express.static(__dirname + '/cards', { maxAge: '7d' }));
 const server = http.createServer(app), io = new Server(server);
 
@@ -13,6 +22,7 @@ const MIN = +process.env.MIN_PLAYERS || 3, MAX = 7, START = 5000, FEE = 100, PEN
 const T = +process.env.TIME_SCALE || 1; // sadece test için: süreleri kısaltır
 const ACT_MS = 25000 * T, OPEN_MS = 20000 * T, SELL_MS = 10000 * T, RESULT_MS = 9500 * T, PAY_MS = 30000 * T;
 const rooms = {};
+const SP = { yavas: 1.6, normal: 1, hizli: 0.65 }, spd = r => SP[r.speed] || 1; // oyun hızı: odadaki tüm süreleri çarpar
 const REACTS = ['👏', '😂', '😱', '🔥', '😎', '💸', 'Bu benim!', 'Yüksek tutma!', 'Blöf mü?', 'Hızlı ol!', 'Aferin!', 'Hurda çıkacak 😏']; // hazır tepkiler (istemci sıra numarası gönderir)
 const fmt = n => n.toLocaleString('tr-TR') + '$';
 const uid = () => Math.random().toString(36).slice(2, 10);
@@ -21,7 +31,7 @@ const P = (r, id) => r.players.find(p => p.id === id);
 const active = r => r.players.filter(p => !p.eliminated);
 const log = (r, t) => { r.log.push(t); if (r.log.length > 30) r.log.shift(); };
 const clear = r => { clearTimeout(r.timer); r.deadline = null; };
-const later = (r, ms, fn) => { clear(r); r.deadline = Date.now() + ms; r.timer = setTimeout(fn, ms); };
+const later = (r, ms, fn) => { clear(r); r.deadline = Date.now() + ms; r.fn = fn; r.timer = setTimeout(fn, ms); };
 const sum = a => a.reduce((s, c) => s + c.value, 0);
 const collateral = p => p.items.filter(c => c.value > 0); // teminat olarak sadece değeri pozitif eşyalar kullanılabilir
 const worth = p => p.money + sum(collateral(p));
@@ -61,7 +71,7 @@ function view(r, me) {
   }
   return {
     code: r.code, gid: r.gid, phase: r.phase, host: r.host, min: MIN, max: MAX, now: Date.now(), deadline: r.deadline || null,
-    me: { id: me.id, name: me.name, money: me.money, items: me.items },
+    me: { id: me.id, name: me.name, money: me.money, items: me.items, spec: !!me.spec }, nSpec: (r.specs || []).length,
     log: r.log.slice(-8), turn: r.turn, total: r.total, aud: r.aud, storage: r.storage, step: r.step,
     decks: { item: (r.itemDeck || []).length, storage: (r.storageDeck || []).length },
     players: r.players.map(p => ({ id: p.id, name: p.name, bot: !!p.bot, on: p.on, out: p.eliminated, n: p.items.length, dec: r.dec && r.dec[p.id] })),
@@ -70,13 +80,14 @@ function view(r, me) {
     bidders: r.bidders || [], bid: r.phase === 'bid' ? r.bid : null,
     pay: r.phase === 'pay' ? { who: r.sale.winner, price: r.sale.price, short: r.sale.short } : null,
     res: r.phase === 'result' && r.res ? { text: r.res.text, fx: r.res.fx || [], winner: r.res.winner || null, n: r.res.n || 0, reveal: r.res.reveal || null, at: r.res.at, gain: r.res.winner === me.id ? r.res.gain : null } : null,
-    shield, shieldWho: sale ? sale.winner : null, final: r.final, stats: r.phase === 'over' ? r.stats : null, reacts: REACTS, diff: r.diff || 'normal',
+    shield, shieldWho: sale ? sale.winner : null, final: r.final, stats: r.phase === 'over' ? r.stats : null, reacts: REACTS, diff: r.diff || 'normal', speed: r.speed || 'normal', paused: !!r.paused, ready: r.phase === 'result' ? Object.keys(r.ready || {}) : [],
   };
 }
 const emit = r => {
   const k = r.phase + ':' + r.turn; // yeni aşamada botlara animasyonlar için kısa bekleme süresi tanı
   if (r.seen !== k) { r.seen = k; r.hold = Date.now() + T * (r.phase === 'prep' ? 3000 : r.phase === 'result' ? 1500 : 700); }
   r.players.forEach(p => { if (p.on && p.sid && !p.bot) io.to(p.sid).emit('state', view(r, p)); });
+  (r.specs || []).forEach(p => { if (p.on && p.sid) io.to(p.sid).emit('state', view(r, p)); }); // izleyiciler
 };
 
 // Aşamada karar vermesi beklenen oyuncular
@@ -90,10 +101,11 @@ function who(r) {
 // Süre dolarsa (veya oyuncu çevrimdışıysa) otomatik hamle yapılır; oyun asla kilitlenmez
 function arm(r) {
   const ps = who(r).map(id => P(r, id)).filter(Boolean);
-  later(r, ps.length && ps.every(p => p.bot || !p.on) ? 1500 : ACT_MS, () => ps.forEach(p => { if (!p.bot) try { botAct(r, p, true); } catch (e) { console.error('auto', e); } }));
+  later(r, ps.length && ps.every(p => p.bot || !p.on) ? 1500 : ACT_MS * spd(r), () => ps.forEach(p => { if (!p.bot) try { botAct(r, p, true); } catch (e) { console.error('auto', e); } }));
 }
 
 function startGame(r) {
+  promoteSpecs(r);
   r.players.forEach(p => Object.assign(p, { money: START, items: [], eliminated: false, turnsLed: 0 }));
   r.itemDeck = shuffle(ITEMS); r.discard = []; r.storageDeck = shuffle(STORAGES);
   r.gid = (r.gid || 0) + 1; r.turn = 0; r.total = r.players.length * 2; r.seat = Math.floor(Math.random() * r.players.length) - 1;
@@ -128,17 +140,17 @@ function joinNext(r) {
 }
 function finish(r, res) {
   r.lot.forEach(l => r.discard.push(l.card)); r.lot = [];
-  r.phase = 'result'; r.res = res; later(r, RESULT_MS, () => nextTurn(r)); emit(r);
+  r.phase = 'result'; r.res = res; r.ready = {}; r.resAt = Date.now(); later(r, RESULT_MS * spd(r), () => nextTurn(r)); emit(r);
 }
 function startBid(r, bidders) {
   r.phase = 'bid'; r.bidders = bidders.slice(); r.bid = { amt: 0, who: null, hist: [] };
-  later(r, OPEN_MS, () => bidTimeout(r)); emit(r);
+  later(r, OPEN_MS * spd(r), () => bidTimeout(r)); emit(r);
 }
 function setBid(r, id, amt, forced) {
   r.bid.amt = amt; r.bid.who = id;
   if (!r.bid.hot && amt >= 3000) { r.bid.hot = true; botSay(r, 'hot'); }
   r.bid.hist.unshift(`${P(r, id).name}: ${fmt(amt)}${forced ? ' (otomatik açılış)' : ''}`); r.bid.hist = r.bid.hist.slice(0, 5);
-  later(r, SELL_MS, () => bidTimeout(r)); emit(r);
+  later(r, SELL_MS * spd(r), () => bidTimeout(r)); emit(r);
 }
 function bidTimeout(r) { if (!r.bid.who) setBid(r, r.bidders[0], FEE, true); else sell(r); }
 
@@ -149,7 +161,7 @@ function sell(r) {
   if (sum(collateral(w)) < short) return failPay(r, w);
   // Para yetmiyor: eşyalar teminat olarak kullanılabilir (para üstü verilmez)
   r.phase = 'pay'; log(r, `${w.name} mezatı ${fmt(price)} ile kazandı; yetmeyen ${fmt(short)} için eşyalarını teminat gösteriyor...`);
-  later(r, PAY_MS, () => settle(r, autoPick(w, short))); emit(r);
+  later(r, PAY_MS * spd(r), () => settle(r, autoPick(w, short))); emit(r);
 }
 function failPay(r, w) { // ödeyemedi: 1000$ ceza, mezat onsuz yeniden başlar
   const a = P(r, r.aud), { price } = r.sale;
@@ -253,6 +265,12 @@ const A = {
     if (r.bid.who === me.id) return;
     setBid(r, me.id, amt);
   },
+  skip(r, me) { // sonuç ekranında "Devam": tüm (elenmemiş, çevrimiçi) gerçek oyuncular basınca sonraki tura geçilir
+    if (r.phase !== 'result' || me.eliminated || Date.now() - (r.resAt || 0) < 1500 * T) return;
+    r.ready[me.id] = true;
+    if (r.players.filter(p => !p.bot && p.on && !p.eliminated).every(p => r.ready[p.id])) return nextTurn(r);
+    emit(r);
+  },
   shield(r, me, { use }) {
     if (r.phase !== 'shield' || r.sale.winner !== me.id) return;
     resolve(r, use);
@@ -267,12 +285,24 @@ const A = {
 
 function dropIfEmpty(room) {
   const humans = room.players.filter(p => !p.bot);
-  if (!humans.length) { clear(room); delete rooms[room.code]; return true; }
+  if (!humans.length) { (room.specs || []).forEach(s => { if (s.sid) io.to(s.sid).emit('forget', { room: false }); }); clear(room); delete rooms[room.code]; return true; }
   if (!humans.some(p => p.id === room.host)) room.host = humans[0].id;
   return false;
 }
+function promoteSpecs(r) { // yeni oyun başlarken izleyiciler (yer varsa) oyuncu olur
+  const keep = [];
+  for (const s of r.specs || []) {
+    if (r.players.length < MAX) { delete s.spec; s.name = uniq(r, s.name); Object.assign(s, { money: 0, items: [], turnsLed: 0, eliminated: false }); r.players.push(s); } else keep.push(s);
+  }
+  r.specs = keep;
+}
+function uniq(r, name) { // aynı odada aynı isimli oyuncu olmasın: "Oyuncu", "Oyuncu 2", "Oyuncu 3"...
+  const has = n => r.players.concat(r.specs || []).some(p => p.name.toLowerCase() === n.toLowerCase());
+  if (!has(name)) return name;
+  for (let i = 2; ; i++) { const s = ' ' + i, n = name.slice(0, 14 - s.length).trimEnd() + s; if (!has(n)) return n; }
+}
 function addBot(r) {
-  const used = r.players.filter(p => p.bot).map(p => p.name), [name, style] = BOTS.find(b => !used.includes(b[0])) || BOTS[0];
+  const used = r.players.map(p => p.name.toLowerCase()), [name0, style] = BOTS.find(b => !used.includes(b[0].toLowerCase())) || BOTS[0], name = uniq(r, name0);
   r.players.push({ id: uid(), token: null, name, bot: true, style, money: 0, items: [], on: true, turnsLed: 0, eliminated: false, noise: 1, noiseTurn: -1 });
 }
 
@@ -283,8 +313,8 @@ const onConn = sock => {
   const mk = name => ({ id: uid(), token: uid() + uid(), name: String(name || '').trim().slice(0, 14) || 'Oyuncu', money: 0, items: [], on: true, turnsLed: 0, eliminated: false });
   const newRoom = p => { let code; do { code = Array.from({ length: 4 }, () => 'ABCDEFGHJKLMNPRSTUVYZ'[Math.floor(Math.random() * 21)]).join(''); } while (rooms[code]); return rooms[code] = { code, host: p.id, players: [p], phase: 'lobby', log: [], pending: [] }; };
   sock.on('create', ({ name } = {}) => { const p = mk(name); bind(newRoom(p), p); });
-  sock.on('solo', ({ name, bots, diff } = {}) => { // tek tuşla botlara karşı oyun
-    const p = mk(name), room = newRoom(p); bind(room, p); room.diff = DIFF[diff] ? diff : 'normal';
+  sock.on('solo', ({ name, bots, diff, speed } = {}) => { // tek tuşla botlara karşı oyun
+    const p = mk(name), room = newRoom(p); bind(room, p); room.diff = DIFF[diff] ? diff : 'normal'; room.speed = SP[speed] ? speed : 'normal';
     const n = Math.max(MIN - 1, Math.min(MAX - 1, Math.floor(+bots) || 3));
     for (let i = 0; i < n; i++) addBot(room);
     startGame(room);
@@ -292,13 +322,16 @@ const onConn = sock => {
   sock.on('join', ({ code, name } = {}) => {
     const room = rooms[String(code || '').toUpperCase().trim()];
     if (!room) return err('Oda bulunamadı');
-    if (room.phase !== 'lobby') return err('Oyun zaten başlamış');
+    if (!['lobby', 'over'].includes(room.phase)) { // oyun sürüyor: izleyici olarak girer, sonraki oyunda oyuncu olur
+      if ((room.specs || []).length >= 10) return err('İzleyici sınırı doldu (en fazla 10)');
+      const sp = mk(name); sp.spec = true; sp.name = uniq(room, sp.name); (room.specs = room.specs || []).push(sp); return bind(room, sp);
+    }
     if (room.players.length >= MAX) return err(`Oda dolu (en fazla ${MAX} oyuncu)`);
-    const p = mk(name); room.players.push(p); bind(room, p);
+    const p = mk(name); p.name = uniq(room, p.name); room.players.push(p); bind(room, p);
   });
   sock.on('rejoin', ({ code, token } = {}) => {
-    const room = rooms[code], p = room && token && room.players.find(x => x.token === token);
-    if (!p) return sock.emit('forget');
+    const room = rooms[code], p = room && token && (room.players.find(x => x.token === token) || (room.specs || []).find(x => x.token === token));
+    if (!p) return sock.emit('forget', { room: !!room }); // room: oda var ama oyuncu kayıtlı değil mi?
     bind(room, p);
   });
   sock.on('addBot', () => {
@@ -318,6 +351,7 @@ const onConn = sock => {
   sock.on('leave', () => {
     if (!r || !me) return;
     const room = r, p = me; r = me = null; p.on = false; p.sid = null; p.token = null;
+    if (p.spec) { room.specs = (room.specs || []).filter(x => x !== p); return emit(room); }
     if (room.phase === 'lobby' || room.phase === 'over') room.players = room.players.filter(x => x !== p);
     else { Object.assign(p, { bot: true, on: true, style: 'dengeli', noise: 1, noiseTurn: -1 }); p.name = p.name.slice(0, 11) + ' 🤖'; } // oyundan ayrılan yerine bot oynar
     if (!dropIfEmpty(room)) emit(room);
@@ -326,15 +360,25 @@ const onConn = sock => {
     if (!r || r.host !== me.id || !['lobby', 'over'].includes(r.phase) || !DIFF[d]) return;
     r.diff = d; emit(r);
   });
+  sock.on('setSpeed', ({ d } = {}) => { // oyun hızı (sadece kurucu, oyun dışında)
+    if (!r || r.host !== me.id || !['lobby', 'over'].includes(r.phase) || !SP[d]) return;
+    r.speed = d; emit(r);
+  });
+  sock.on('pause', ({ on } = {}) => { // duraklatma: sadece tek gerçek oyunculu (botlara karşı) odalarda
+    if (!r || !me || me.spec || r.players.filter(p => !p.bot).length !== 1 || ['lobby', 'over'].includes(r.phase)) return;
+    if (on && !r.paused) { r.paused = true; r.rem = Math.max(1000, (r.deadline || 0) - Date.now()); clearTimeout(r.timer); r.deadline = null; emit(r); }
+    else if (!on && r.paused) { r.paused = false; later(r, r.rem, r.fn); emit(r); }
+  });
   sock.on('react', ({ i } = {}) => { // hazır tepki: odadaki gerçek oyunculara iletilir (1,2 sn'de bir)
     const t = REACTS[Math.floor(+i)];
-    if (!r || !me || !t || Date.now() - (me.lastReact || 0) < 1200) return;
+    if (!r || !me || me.spec || !t || Date.now() - (me.lastReact || 0) < 1200) return;
     me.lastReact = Date.now();
     r.players.forEach(p => { if (p.on && p.sid && !p.bot) io.to(p.sid).emit('react', { id: me.id, name: me.name, t }); });
   });
-  for (const ev of Object.keys(A)) sock.on(ev, d => { if (r && me) A[ev](r, me, d || {}, err); });
+  for (const ev of Object.keys(A)) sock.on(ev, d => { if (r && me && !me.spec && !r.paused) A[ev](r, me, d || {}, err); });
   sock.on('disconnect', () => {
     if (!me) return; const room = r, p = me; p.on = false; emit(room);
+    if (p.spec) { setTimeout(() => { if (!p.on) { room.specs = (room.specs || []).filter(x => x !== p); emit(room); } }, 60000); return; }
     setTimeout(() => {
       if (p.on || room.phase !== 'lobby' || !room.players.includes(p)) return;
       room.players = room.players.filter(x => x !== p);
@@ -387,7 +431,7 @@ function botAct(r, p, idle) { // idle: süresi dolan/çevrimdışı gerçek oyun
 setInterval(() => Object.values(rooms).forEach(r => {
   if (!r.players.some(p => !p.bot && p.on)) { r.idle = r.idle || Date.now(); if (Date.now() - r.idle > 600000) { clear(r); delete rooms[r.code]; } return; } // 10 dk boş kalan oda silinir
   r.idle = 0;
-  if (!['prep', 'peekBefore', 'peekAfter', 'join', 'bid', 'shield', 'pay'].includes(r.phase) || Date.now() < (r.hold || 0)) return;
+  if (!['prep', 'peekBefore', 'peekAfter', 'join', 'bid', 'shield', 'pay'].includes(r.phase) || Date.now() < (r.hold || 0) || r.paused) return;
   r.players.filter(p => p.bot && !p.eliminated).forEach(p => { if (Math.random() < (DIFF[r.diff] || DIFF.normal).act) try { botAct(r, p); } catch (e) { console.error('bot', e); } });
 }), 1000 * T);
 

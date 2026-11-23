@@ -93,6 +93,9 @@ label.l{display:block;font-size:12px;color:var(--mu);margin:10px 0 4px;text-tran
 .cnt{position:absolute;right:-8px;top:-8px;background:var(--am);color:#241a00;font-weight:800;font-size:12px;min-width:24px;height:24px;border-radius:12px;display:grid;place-items:center;border:2px solid #101a2c;z-index:3}
 .stor{width:132px;flex:none;position:relative}
 .stor:empty{aspect-ratio:var(--cw);border:2px dashed #ffffff30;border-radius:10px}
+.sinfo{display:flex;flex-wrap:wrap;justify-content:center;gap:6px;margin:0 0 10px;position:relative}
+.sinfo:empty{display:none}
+.sinfo span{background:#0d1626d9;border:1px solid var(--ln);border-radius:999px;padding:4px 11px;font-size:13px;font-weight:600;color:var(--tx)}.sinfo b{color:var(--am)}
 .lot{display:flex;flex-wrap:wrap;justify-content:center;gap:8px;position:relative;--w:min(118px,calc((100% - (var(--n) - 1)*8px)/var(--n)))}
 .lot .slot{width:var(--w)}
 @media(max-width:520px){.lot.many{--w:calc((100% - 16px)/3)}}
@@ -114,6 +117,7 @@ label.l{display:block;font-size:12px;color:var(--mu);margin:10px 0 4px;text-tran
 .slot.peeked .eye{display:block}.slot.peeked .face.front{box-shadow:0 0 0 3px var(--tl),0 5px 14px #000a}
 .slot.pub .face.front{box-shadow:0 0 0 3px var(--am),0 5px 14px #000a}
 .slot[data-z]{cursor:zoom-in}
+.hist{margin:0;font-size:13px;color:#b5bfd4;padding:10px 14px}.hist b{display:block;font-size:11px;letter-spacing:.12em;color:var(--mu);margin-bottom:4px;text-transform:uppercase}.hist div{padding:1px 0}.hist div:nth-child(2){color:var(--am2);font-weight:700}
 #act{display:flex;flex-direction:column}#act .panel{margin:0}
 #act.act #pA .panel{border-color:var(--am);box-shadow:0 0 0 2px #f6c44555,0 8px 24px #0005;animation:glow 1.6s infinite}
 @keyframes glow{50%{box-shadow:0 0 0 5px #f6c44533,0 8px 24px #0005}}
@@ -140,8 +144,9 @@ label.l{display:block;font-size:12px;color:var(--mu);margin:10px 0 4px;text-tran
 .empty{color:var(--mu);padding:14px;text-align:center;width:100%}
 #logz details{background:#0d162699;border-radius:12px;padding:8px 12px}#logz summary{cursor:pointer;font-weight:700;color:var(--mu)}
 #logz div{font-size:13px;color:#b5bfd4;margin:3px 0}
-#zoom,#sheet,#rules,#rx{position:fixed;inset:0;background:#000c;display:none;place-items:center;z-index:50;padding:14px}
-#zoom.on,#sheet.on,#rules.on,#rx.on{display:grid}
+#zoom,#sheet,#rules,#rx,#pause{position:fixed;inset:0;background:#000c;display:none;place-items:center;z-index:50;padding:14px}
+#zoom.on,#sheet.on,#rules.on,#rx.on,#pause.on{display:grid}
+#pause{background:#0b1220f2;z-index:52}
 .rxg{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}.rxg button{font-size:18px;padding:12px 8px}
 #reacts{position:fixed;top:calc(env(safe-area-inset-top) + 64px);left:50%;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;gap:6px;z-index:55;pointer-events:none;width:max-content;max-width:92vw}
 .rxb{background:#fffdf3;color:#2a2108;border-radius:14px;padding:6px 14px;font-weight:700;box-shadow:0 6px 18px #0008;animation:rxin 3s forwards;text-align:center}
@@ -172,9 +177,10 @@ label.l{display:block;font-size:12px;color:var(--mu);margin:10px 0 4px;text-tran
       <div class="stor" id="stor"></div>
       <div class="pile" id="pI"><div class="stack"><img src="cards/arka-esya.jpg" alt=""><img src="cards/arka-esya.jpg" alt=""><img src="cards/arka-esya.jpg" alt=""></div><span class="cnt" id="cI">0</span><small>EŞYA</small></div>
     </div>
+    <div class="sinfo" id="sinfo"></div>
     <div class="lot" id="lot"></div>
   </div>
-  <div id="act"><div id="pA"></div><div id="pB"></div></div>
+  <div id="act"><div id="pA"></div><div id="pB"></div><div id="pH"></div></div>
   <div id="hand"></div>
   <div id="info"><div id="seats"></div><div id="logz"></div></div>
 </div>
@@ -197,6 +203,7 @@ label.l{display:block;font-size:12px;color:var(--mu);margin:10px 0 4px;text-tran
 </ul><button class="cta" onclick="rules(0)">Anladım</button></div></div>
 <div id="rx" onclick="if(event.target===this)reactPanel(0)"><div class="sheetbox"><h2>Tepki gönder</h2><div class="rxg" id="rxg"></div><button class="alt" style="width:100%;margin-top:10px" onclick="reactPanel(0)">Kapat</button></div></div>
 <div id="reacts"></div>
+<div id="pause"><div class="sheetbox center"><h2>⏸ Duraklatıldı</h2><p>Oyun beklemede, süre işlemiyor.</p><button class="cta" onclick="go('pause',{on:false})">▶ Devam et</button></div></div>
 <div id="net"></div>
 <div id="toast"></div>
 <script src="/socket.io/socket.io.js"></script>
@@ -206,7 +213,7 @@ const esc = t => String(t).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;',
 const fmt = n => (n < 0 ? '-' : '') + Math.abs(n).toLocaleString('tr-TR') + '$';
 const go = (ev, d) => { if (!sock.connected) return toast('Bağlantı yok, yeniden bağlanılıyor…'); sock.emit(ev, d || {}); };
 const cardUrl = c => `cards/${c.img}.jpg`;
-let S = null, prevS = null, off = 0, nameDraft = localStorage.getItem('bbName') || '', mode = 'solo', nBots = 3, diffDraft = 'normal', logOpen = false;
+let S = null, prevS = null, off = 0, nameDraft = localStorage.getItem('bbName') || '', mode = 'solo', nBots = 3, diffDraft = 'normal', speedDraft = 'normal', logOpen = false;
 const q0 = new URLSearchParams(location.search).get('oda') || '';
 let codeDraft = q0.toUpperCase(); if (q0) mode = 'online';
 const sv = JSON.parse(localStorage.getItem('bb') || '{}');
@@ -241,8 +248,19 @@ const toggleFs = () => {
 };
 document.addEventListener('keydown', e => { if ((e.key === 'f' || e.key === 'F') && !/INPUT|TEXTAREA/.test(document.activeElement.tagName) && !e.ctrlKey && !e.metaKey) toggleFs(); });
 const zoom = src => { $('#zoom img').src = src; $('#zoom').classList.add('on'); };
-const toast = m => { const t = $('#toast'); t.textContent = m; t.style.display = 'block'; clearTimeout(toast.h); toast.h = setTimeout(() => t.style.display = 'none', 2600); };
+const toast = (m, ms = 2600) => { const t = $('#toast'); t.textContent = m; t.style.display = 'block'; clearTimeout(toast.h); toast.h = setTimeout(() => t.style.display = 'none', ms); };
 ['arka-esya', 'arka-depo', 'mezatci'].forEach(n => { new Image().src = `cards/${n}.jpg`; });
+// Tüm kart görsellerini arka planda, 3'er 3'er önceden yükle: yavaş bağlantıda boş kart görünmesin (servis çalışanı sayesinde sonraki açılışlarda anında gelir)
+(async function preloadCards() {
+  try {
+    if (navigator.connection && navigator.connection.saveData) return; // veri tasarrufu açıksa yükleme
+    const first = ['arka-esya.jpg', 'arka-depo.jpg', 'mezatci.jpg'], list = await (await fetch('/cards.json')).json();
+    const queue = list.filter(f => !first.includes(f)); let active = 0;
+    await new Promise(r => setTimeout(r, 1200)); // önce menü açılsın
+    const next = () => { while (active < 3 && queue.length) { const im = new Image(); active++; im.onload = im.onerror = () => { active--; next(); }; im.src = 'cards/' + queue.shift(); } };
+    next();
+  } catch (e) {}
+})();
 
 sock.on('connect', () => { if (sv.code && sv.token) sock.emit('rejoin', sv); });
 /* ---------- Bağlantı durumu ---------- */
@@ -254,7 +272,10 @@ sock.on('connect_error', () => net(everUp ? '📡 Bağlantı koptu, yeniden bağ
 setTimeout(() => { if (!sock.connected && !everUp) net('⏳ Sunucuya bağlanılıyor, biraz sürebilir…'); }, 2500);
 document.addEventListener('visibilitychange', () => { if (!document.hidden && !sock.connected) sock.connect(); }); // telefon uykudan dönünce hemen yeniden dene
 sock.on('joined', d => { localStorage.setItem('bb', JSON.stringify(d)); Object.assign(sv, d); });
-sock.on('forget', () => { localStorage.removeItem('bb'); delete sv.code; delete sv.token; S = null; render(); });
+sock.on('forget', d => { // oda artık yok (sunucu yeniden başlamış / oda kapanmış) ya da oyuncu kaydı silinmiş
+  const inRoom = !!S; localStorage.removeItem('bb'); delete sv.code; delete sv.token; S = prevS = null; lotKey = null; zc.menu = null; sheet(0); reactPanel(0); render();
+  toast(d && d.room ? 'Odadaki yerin artık yok. Ana menüye döndün.' : (inRoom ? '📡 Oda artık yok (sunucu yeniden başlamış olabilir). Ana menüye döndün.' : 'Son odan artık yok.'), 6000);
+});
 sock.on('err', m => { toast(m); sfx.bad(); });
 sock.on('react', d => {
   const box = $('#reacts'), el = document.createElement('div'), em = [...d.t].length <= 2;
@@ -262,7 +283,11 @@ sock.on('react', d => {
   box.appendChild(el); while (box.children.length > 4) box.firstChild.remove();
   setTimeout(() => el.remove(), 3100); sfx.tick();
 });
-sock.on('state', s => { prevS = S; S = s; off = s.now - Date.now(); render(); });
+sock.on('state', s => {
+  if (s.me.spec && !(S && S.me.spec)) toast('👀 Oyun sürüyor: İzleyici olarak katıldın. Sonraki oyunda oyuncu olursun.', 6000);
+  else if (S && S.me.spec && !s.me.spec) toast('🎉 Yeni oyun başladı, artık oyuncusun!', 4000);
+  prevS = S; S = s; off = s.now - Date.now(); render();
+});
 
 const zc = {};
 const zone = (id, html) => { if (zc[id] === html) return false; zc[id] = html; $('#' + id).innerHTML = html; return true; };
@@ -277,11 +302,15 @@ function autoPickC(items, need) { // para üstü verilmediğinden en az fazlalı
 }
 
 /* ---------- Menü ekranları ---------- */
-const startSolo = () => { localStorage.removeItem('bb'); go('solo', { name: nameDraft, bots: nBots, diff: diffDraft }); };
+const startSolo = () => { localStorage.removeItem('bb'); go('solo', { name: nameDraft, bots: nBots, diff: diffDraft, speed: speedDraft }); };
 const DIFFS = [['kolay', '😊 Kolay'], ['normal', '🙂 Normal'], ['zor', '😈 Zor']];
 const diffPills = (cur, fn) => `<div class="pills">${DIFFS.map(([k, t]) => `<button class="pill ${k === cur ? 'on' : ''}" onclick="${fn}('${k}')">${t}</button>`).join('')}</div>`;
 const setDiffDraft = d => { diffDraft = d; zc.menu = null; render(); };
 const setDiffHost = d => go('setDiff', { d });
+const SPEEDS = [['yavas', '🐢 Yavaş'], ['normal', '🚶 Normal'], ['hizli', '⚡ Hızlı']], SPM = { yavas: 1.6, normal: 1, hizli: 0.65 };
+const speedPills = (cur, fn) => `<div class="pills">${SPEEDS.map(([k, t]) => `<button class="pill ${k === cur ? 'on' : ''}" onclick="${fn}('${k}')">${t}</button>`).join('')}</div>`;
+const setSpeedDraft = d => { speedDraft = d; zc.menu = null; render(); };
+const setSpeedHost = d => go('setSpeed', { d });
 const setMode = m => { mode = m; zc.menu = null; render(); };
 const setBots = n => { nBots = n; zc.menu = null; render(); };
 const leave = () => { go('leave'); localStorage.removeItem('bb'); delete sv.code; delete sv.token; S = prevS = null; sheet(0); lotKey = null; zc.menu = null; render(); };
@@ -292,20 +321,20 @@ function menuHTML() {
   if (!s) return `<div class="logo"><img src="cards/mezatci.jpg" alt=""><div><h1>Depo<br><span>Savaşları</span></h1><p>Depoları mezatla kap, hazineyi bul, hurdaya kanma!</p></div></div>
   <div class="panel"><label class="l">Oyuncu adı</label><input maxlength="14" placeholder="Adın" value="${esc(nameDraft)}" oninput="nameDraft=this.value;localStorage.setItem('bbName',this.value)">
   <div class="tabs"><button class="tab ${mode === 'solo' ? 'on' : ''}" onclick="setMode('solo')">🤖 Botlara karşı</button><button class="tab ${mode === 'online' ? 'on' : ''}" onclick="setMode('online')">🌐 Online</button></div>
-  ${mode === 'solo' ? `<label class="l">Rakip sayısı</label><div class="pills">${[2, 3, 4, 5, 6].map(n => `<button class="pill ${n === nBots ? 'on' : ''}" onclick="setBots(${n})">${n}</button>`).join('')}</div><label class="l">Bot zorluğu</label>${diffPills(diffDraft, 'setDiffDraft')}<button class="cta" onclick="startSolo()">🔨 Oyuna başla</button>`
+  ${mode === 'solo' ? `<label class="l">Rakip sayısı</label><div class="pills">${[2, 3, 4, 5, 6].map(n => `<button class="pill ${n === nBots ? 'on' : ''}" onclick="setBots(${n})">${n}</button>`).join('')}</div><label class="l">Bot zorluğu</label>${diffPills(diffDraft, 'setDiffDraft')}<label class="l">Oyun hızı (süreler)</label>${speedPills(speedDraft, 'setSpeedDraft')}<button class="cta" onclick="startSolo()">🔨 Oyuna başla</button>`
     : `<button class="cta" onclick="go('create',{name:nameDraft})">➕ Yeni oda kur</button><div class="or">— veya arkadaşının kodunu gir —</div><input placeholder="ODA KODU" maxlength="4" value="${esc(codeDraft)}" style="text-transform:uppercase;text-align:center;letter-spacing:.3em;font-weight:800" oninput="codeDraft=this.value"><div class="row"><button class="alt" onclick="go('join',{name:nameDraft,code:codeDraft})">Odaya katıl</button></div>`}
   </div><div class="center"><button class="link" onclick="rules(1)">📖 Nasıl oynanır?</button><button class="link" onclick="toggleFs()">⛶ Tam ekran</button></div>`;
   if (s.phase === 'lobby') {
     const host = s.host === s.me.id;
     return `<div class="logo"><h1 style="font-size:34px">Oda <span>hazır</span></h1></div><div class="panel"><small>ODA KODU</small><div class="code">${s.code}</div><button class="alt cta" onclick="copyLink()">🔗 Davet bağlantısını kopyala</button></div>
     <div class="panel"><div class="plist">${s.players.map(plHTML).join('')}</div><small>${s.players.length}/${s.max} oyuncu · en az ${s.min} gerekli</small></div>
-    ${host ? `<div class="row"><button class="alt" ${s.players.length >= s.max ? 'disabled' : ''} onclick="go('addBot')">🤖 Bot ekle</button></div>${s.players.some(p => p.bot) ? '<label class="l">Bot zorluğu</label>' + diffPills(s.diff, 'setDiffHost') : ''}<button class="cta" ${s.players.length < s.min ? 'disabled' : ''} onclick="go('start')">🔨 Oyunu başlat</button>` : '<div class="wait">Kurucunun oyunu başlatması bekleniyor…</div>'}
+    ${host ? `<div class="row"><button class="alt" ${s.players.length >= s.max ? 'disabled' : ''} onclick="go('addBot')">🤖 Bot ekle</button></div>${s.players.some(p => p.bot) ? '<label class="l">Bot zorluğu</label>' + diffPills(s.diff, 'setDiffHost') : ''}<label class="l">Oyun hızı (süreler)</label>${speedPills(s.speed, 'setSpeedHost')}<button class="cta" ${s.players.length < s.min ? 'disabled' : ''} onclick="go('start')">🔨 Oyunu başlat</button>` : '<div class="wait">Kurucunun oyunu başlatması bekleniyor…</div>'}
     <div class="center"><button class="link" onclick="leave()">Odadan ayrıl</button></div>`;
   }
   const f = s.final, host = s.host === s.me.id, win = f.find(p => !p.out), st = s.stats || {}, bd = st.best && st.best.profit > 0 ? st.best : null, jk = st.junk;
   const conf = Array.from({ length: 30 }, (_, i) => `<i style="left:${(i * 37 + 5) % 100}%;background:${['#f6c445', '#2fd0df', '#35c46c', '#e5484d', '#fff'][i % 5]};animation-delay:${(i * 13 % 20) / 10}s;animation-duration:${(2.4 + (i * 7 % 10) / 5).toFixed(1)}s"></i>`).join('');
   return `<div class="confetti">${conf}</div><div class="logo"><h1 style="font-size:40px">🏆 Oyun <span>bitti</span></h1></div>${win ? `<div class="panel winner"><small>KAZANAN</small><div class="ttl">👑 ${esc(win.name)}${win.id === s.me.id ? ' (sen)' : ''}</div><div class="tot">${fmt(win.total)}</div></div>` : ''}${bd || jk ? `<div class="panel stats">${bd ? `<div class="st"><span>🔨</span><div><small>EN İYİ MEZAT</small><b>${esc(bd.name)} · ${esc(bd.storage)}</b><small>${fmt(bd.price)} ödedi, ${fmt(bd.value)} değerinde eşya aldı (+${fmt(bd.profit)} kâr)</small></div></div>` : ''}${jk ? `<div class="st"><img src="${cardUrl(jk.card)}" alt=""><div><small>EN BÜYÜK HURDA</small><b>${esc(jk.card.name)}</b><small>${esc(jk.name)} elinde kaldı (${fmt(jk.card.value)})</small></div></div>` : ''}</div>` : ''}${f.map((p, i) => `<div class="panel rank" style="${i === 0 && !p.out ? 'border-color:var(--am)' : ''}"><div class="no">${p.out ? '💀' : i + 1}</div><div><b>${esc(p.name)}${p.id === s.me.id ? ' (sen)' : ''}</b><br><small>Para ${fmt(p.money)} + Eşya ${fmt(p.iv)}${p.out ? ' · elendi' : ''}</small></div><div class="tot">${fmt(p.total)}</div>${p.items.length ? `<div class="fan">${p.items.map(c => `<div class="hc" data-z="${cardUrl(c)}"><img src="${cardUrl(c)}" alt="${esc(c.name)}" loading="lazy"></div>`).join('')}</div>` : ''}</div>`).join('')}
-  ${host && f.some(p => p.bot) ? '<label class="l">Bot zorluğu</label>' + diffPills(s.diff, 'setDiffHost') : ''}${host ? '<button class="cta" onclick="go(\'start\')">🔁 Yeni oyun</button>' : '<div class="wait">Kurucunun yeni oyun başlatması bekleniyor…</div>'}<div class="center"><button class="link" onclick="leave()">Ana menü</button></div>`;
+  ${host ? '<label class="l">Oyun hızı (süreler)</label>' + speedPills(s.speed, 'setSpeedHost') : ''}${host && f.some(p => p.bot) ? '<label class="l">Bot zorluğu</label>' + diffPills(s.diff, 'setDiffHost') : ''}${host ? '<button class="cta" onclick="go(\'start\')">🔁 Yeni oyun</button>' : '<div class="wait">Kurucunun yeni oyun başlatması bekleniyor…</div>'}<div class="center"><button class="link" onclick="leave()">Ana menü</button></div>`;
 }
 
 /* ---------- Masa / animasyonlar ---------- */
@@ -377,8 +406,13 @@ const submitPay = () => go('pay', { ids: [...paySel] });
 function panels() {
   const s = S, me = s.me, iAud = s.aud === me.id, ph = s.phase;
   const W = html => `<div class="panel">${html}</div>`, TM = '<div class="bar"><i id="bar"></i></div><div id="tm"></div>';
-  const res = { a: '', b: '', act: false };
+  const res = { a: '', b: '', h: '', act: false };
   if (ph !== 'pay') paySel = null;
+  if (me.spec) { // izleyici: sadece izler, hamle paneli yok
+    const b = s.bid;
+    res.a = W(`<div class="hint">👀 İzleyicisin</div>${ph === 'bid' && b ? `<div class="big">${b.who ? fmt(b.amt) : 'Teklif yok'}</div><div class="center">${b.who ? nm(b.who) + ' önde' : 'Açılış 100$'}</div>` : ph === 'result' ? `<div class="center">${esc(s.res.text)}</div>` : ''}<small class="center" style="display:block;margin-top:6px">Sonraki oyun başlayınca otomatik oyuncu olursun.</small>${ph === 'result' ? '' : TM}`);
+    return res;
+  }
   if (ph === 'prep') {
     if (iAud) { res.act = true; res.a = W(`<div class="hint">${s.step === 'flip' ? '👆 Herkese açılacak bir eşyayı seç' : '👁 Gizlice bakacağın eşyayı seç'}</div>${TM}`); }
     else res.a = W(`<div class="wait">${nm(s.aud)} depoyu hazırlıyor…</div>`);
@@ -392,6 +426,7 @@ function panels() {
     const b = s.bid, mine = b.who === me.id, can = s.bidders.includes(me.id), worth = me.money + sumV(me.items.filter(c => c.value > 0));
     res.a = W(`<div class="big">${b.who ? fmt(b.amt) : 'Teklif yok'}</div><div class="center">${b.who ? (mine ? '<b style="color:var(--gr)">En yüksek teklif sende</b>' : nm(b.who) + ' önde') : 'Açılış 100$'}</div>${TM}${can ? `<div class="qb">${[100, 500, 1000, 5000].map(d => { const a = (b.amt || 0) + d; return `<button class="${a > worth ? 'risk' : a > me.money ? 'warn' : ''}" ${mine ? 'disabled' : ''} onclick="go('bid',{amt:${a}})">${fmt(a)}<small>+${d}</small></button>`; }).join('')}</div><small style="display:block;margin-top:6px">🟠 teminat gerekir · 🔴 ödeyemezsin (1.000$ ceza)</small>` : `<div class="wait">${iAud ? 'Mezatçısın, teklif veremezsin.' : 'Bu mezata katılmadın.'}</div>`}`);
     if (can) { res.act = !mine; res.b = `<div class="panel" style="margin-top:10px"><div class="row" style="margin:0"><input id="cb" type="number" step="100" inputmode="numeric" placeholder="Özel teklif"><button style="flex:0 0 84px" onclick="go('bid',{amt:+$('#cb').value});$('#cb').value=''">Ver</button></div></div>`; }
+    if (b.hist.length > 1) res.h = `<div class="panel hist" style="margin-top:10px"><b>Son teklifler</b>${b.hist.map(h => `<div>${esc(h)}</div>`).join('')}</div>`;
   } else if (ph === 'pay') {
     if (s.pay.who === me.id) {
       res.act = true; payItems = me.items.filter(c => c.value > 0).sort((a, b) => b.value - a.value);
@@ -403,13 +438,16 @@ function panels() {
     if (s.shield) { res.act = true; res.a = W(`<div class="hint">Kazandın! Depoda Olay kartı var</div><div class="center" style="margin-bottom:8px">${s.shield.evs.map(esc).join(', ')}</div><div class="row">${Array.from({ length: s.shield.max + 1 }, (_, n) => `<button class="${n ? 'good' : 'alt'}" onclick="go('shield',{use:${n}})">${n ? '🛡️ ' + n + ' Güvenlik Ağı kullan' : 'Kullanma'}</button>`).join('')}</div>${TM}`); }
     else res.a = W(`<div class="wait">${nm(s.shieldWho)} Güvenlik Ağı kararı veriyor…</div>`);
   } else if (ph === 'result') {
-    res.a = W(`<div class="center"><div class="ttl" style="font-size:28px;color:var(--am)">🔨 ${s.res.winner ? 'Satıldı!' : 'Depo ıskarta'}</div><div style="margin-top:4px">${esc(s.res.text)}</div>${s.res.fx.map(t => `<div style="color:var(--am2);margin-top:4px">${esc(t)}</div>`).join('')}</div><div class="bar"><i id="bar"></i></div>`);
+    res.a = W(`<div class="center"><div class="ttl" style="font-size:28px;color:var(--am)">🔨 ${s.res.winner ? 'Satıldı!' : 'Depo ıskarta'}</div><div style="margin-top:4px">${esc(s.res.text)}</div>${s.res.fx.map(t => `<div style="color:var(--am2);margin-top:4px">${esc(t)}</div>`).join('')}</div><div class="bar"><i id="bar"></i></div><button class="alt cta" id="skipBtn" style="margin-top:6px" disabled onclick="go('skip')">⏭ ${s.ready.includes(me.id) ? 'Bekleniyor…' : 'Devam'}${(n => n > 1 ? ' ' + s.ready.length + '/' + n : '')(s.players.filter(p => !p.bot && p.on && !p.out).length)}</button>`);
   }
   return res;
 }
-const seatsHTML = () => S.players.map(p => `<div class="seat ${p.id === S.me.id ? 'me' : ''} ${p.id === S.aud ? 'aud' : ''} ${p.id === S.cur ? 'cur' : ''} ${p.out ? 'out' : ''} ${!p.on ? 'off' : ''}" id="seat-${p.id}">${p.id === S.aud ? '<img class="mini" src="cards/mezatci.jpg" alt="Mezatçı">' : ''}<div class="av">${p.bot ? '🤖' : esc(p.name.slice(0, 1).toUpperCase())}</div><div><b>${esc(p.name)}${p.out ? ' 💀' : ''}</b><small>${p.n} eşya${!p.on ? ' · çevrimdışı' : ''}</small></div><span class="dc">${p.dec === 'in' ? '✅' : p.dec === 'out' ? '❌' : p.id === S.cur ? '👉' : ''}</span></div>`).join('');
+const PEEK_TXT = { before: 'Katılımdan önce (herkes)', after: 'Katılımdan sonra (sadece katılanlar)', never: 'Yok (sadece mezatçı bakar)' };
+const storageChips = st => st ? `<span>📦 <b>${st.items}</b> eşya</span><span>${st.open ? '🔓 Bir eşya açılır' : '🔒 Açılan eşya yok'}</span><span>👁 Gizlice bak: <b>${PEEK_TXT[st.peek] || '-'}</b></span>` : '';
+const seatsHTML = () => S.players.map(p => `<div class="seat ${p.id === S.me.id ? 'me' : ''} ${p.id === S.aud ? 'aud' : ''} ${p.id === S.cur ? 'cur' : ''} ${p.out ? 'out' : ''} ${!p.on ? 'off' : ''}" id="seat-${p.id}">${p.id === S.aud ? '<img class="mini" src="cards/mezatci.jpg" alt="Mezatçı">' : ''}<div class="av">${p.bot ? '🤖' : esc(p.name.slice(0, 1).toUpperCase())}</div><div><b>${esc(p.name)}${p.out ? ' 💀' : ''}</b><small>${p.n} eşya${!p.on ? ' · çevrimdışı' : ''}</small></div><span class="dc">${p.dec === 'in' ? '✅' : p.dec === 'out' ? '❌' : p.id === S.cur ? '👉' : ''}</span></div>`).join('') + (S.nSpec ? `<small style="flex:1 1 100%;padding:2px 6px">👀 ${S.nSpec} izleyici</small>` : '');
 function renderHand() {
   if (!S || !S.me) return;
+  if (S.me.spec) return zone('hand', ''); // izleyicinin eli yok
   const items = S.me.items.filter(c => !hold.has(c.id)).sort((a, b) => b.value - a.value), fresh = new Set(handIds ? items.filter(c => !handIds.has(c.id)).map(c => c.id) : []);
   handIds = new Set(items.map(c => c.id));
   zone('hand', `<div class="panel"><div class="hh"><b>🧳 Eşyalarım (${items.length})</b><span>Değer <b style="color:var(--gr)">${fmt(sumV(items))}</b></span></div><div class="hf">${items.length ? items.map(c => `<div class="hc ${fresh.has(c.id) ? 'new' : ''}" data-z="${cardUrl(c)}" title="${esc(c.name)}"><img src="${cardUrl(c)}" alt="${esc(c.name)}" loading="lazy"></div>`).join('') : '<div class="empty">Henüz eşyan yok. Bir mezat kazan!</div>'}</div></div>`);
@@ -431,17 +469,20 @@ function tick() {
   if (!S || ['lobby', 'over'].includes(S.phase)) return;
   const rem = S.deadline ? (S.deadline - (Date.now() + off)) / 1000 : null, sec = rem === null ? 0 : Math.max(0, Math.ceil(rem));
   const tm = $('#tm'); if (tm) tm.textContent = S.phase === 'bid' && !S.bid.who ? `Açılış teklifi bekleniyor: ${sec} sn` : rem !== null && rem <= 0 && S.phase === 'bid' ? 'SATTIM!' : `${sec} sn`;
-  const bar = $('#bar'); if (bar && rem !== null) { const tot = S.phase === 'result' ? 9.5 : S.phase === 'bid' ? (S.bid.who ? 10 : 20) : S.phase === 'pay' ? 30 : 25; bar.style.transform = `scaleX(${Math.max(0, Math.min(1, rem / tot))})`; }
-  const t = say(rem); if (t !== lastTalk) { lastTalk = t; $('#bub').textContent = t; const p = $('#por'); p.classList.remove('talk'); void p.offsetWidth; p.classList.add('talk'); }
+  const bar = $('#bar'); if (bar && rem !== null) { const tot = S.phase === 'result' ? 9.5 : S.phase === 'bid' ? (S.bid.who ? 10 : 20) : S.phase === 'pay' ? 30 : 25, mult = SPM[S.speed] || 1; bar.style.transform = `scaleX(${Math.max(0, Math.min(1, rem / (tot * mult)))})`; }
+  const sk = $('#skipBtn'); if (sk && rem !== null) sk.disabled = (9.5 * (SPM[S.speed] || 1) - rem) < 2.5 || S.ready.includes(S.me.id); // animasyonlar bitmeden geçilmesin
+  const t = say(rem === null ? null : rem / (SPM[S.speed] || 1)); if (t !== lastTalk) { lastTalk = t; $('#bub').textContent = t; const p = $('#por'); p.classList.remove('talk'); void p.offsetWidth; p.classList.add('talk'); }
 }
 function renderGame() {
   const s = S, me = s.me, iAud = s.aud === me.id;
   lotMode = s.phase === 'prep' && iAud ? (s.step === 'flip' ? 'flip' : 'peek') : (s.phase === 'peekBefore' || s.phase === 'peekAfter') && s.pending.includes(me.id) ? 'peek' : null;
   const dm = prevS && prevS.me && prevS.gid === s.gid ? me.money - prevS.me.money : 0;
-  zone('hud', `<button class="alt ib" onclick="sheet(1)">☰</button><button class="alt ib" onclick="toggleFs()" title="Tam ekran (F)">⛶</button>${s.players.some(p => !p.bot && p.id !== me.id) ? '<button class="alt ib" onclick="reactPanel()" title="Tepki gönder">💬</button>' : ''}<div class="turn"><small>TUR</small><b>${s.turn}</b>/${s.total}</div><div class="who"><small>MEZATÇI</small><b>${nm(s.aud)}${iAud ? ' (sen)' : ''}</b></div><div class="wallet ${dm > 0 ? 'up' : dm < 0 ? 'down' : ''}"><small>KASA</small><b>${fmt(me.money)}</b></div>`);
+  zone('hud', `<button class="alt ib" onclick="sheet(1)">☰</button><button class="alt ib" onclick="toggleFs()" title="Tam ekran (F)">⛶</button>${!me.spec && s.players.some(p => !p.bot && p.id !== me.id) ? '<button class="alt ib" onclick="reactPanel()" title="Tepki gönder">💬</button>' : ''}${!me.spec && s.players.filter(p => !p.bot).length === 1 ? '<button class="alt ib" onclick="go(\'pause\',{on:true})" title="Duraklat">⏸</button>' : ''}<div class="turn"><small>TUR</small><b>${s.turn}</b>/${s.total}</div><div class="who"><small>MEZATÇI</small><b>${nm(s.aud)}${iAud ? ' (sen)' : ''}</b></div>${me.spec ? '<div class="wallet"><small>DURUM</small><b style="font-size:20px">👀 İZLEYİCİ</b></div>' : `<div class="wallet ${dm > 0 ? 'up' : dm < 0 ? 'down' : ''}"><small>KASA</small><b>${fmt(me.money)}</b></div>`}`);
   $('#cS').textContent = s.decks.storage; $('#cI').textContent = s.decks.item;
   syncStage();
-  const p = panels(); zone('pA', p.a); zone('pB', p.b); $('#act').classList.toggle('act', p.act);
+  zone('sinfo', storageChips(s.storage));
+  const p = panels(); zone('pA', p.a); zone('pB', p.b); zone('pH', p.h); $('#act').classList.toggle('act', p.act);
+  $('#pause').classList.toggle('on', !!s.paused);
   renderHand();
   zone('seats', seatsHTML());
   zone('logz', `<details ${logOpen ? 'open' : ''} ontoggle="logOpen=this.open"><summary>📜 Oyun günlüğü</summary>${s.log.map(l => `<div>${esc(l)}</div>`).join('')}</details>`);
@@ -454,9 +495,9 @@ function renderGame() {
 }
 function render() {
   const inGame = S && !['lobby', 'over'].includes(S.phase);
-  $('#game').hidden = !inGame; $('#menu').hidden = inGame;
+  $('#game').hidden = !inGame; $('#menu').hidden = inGame; if (!inGame) $('#pause').classList.remove('on');
   if (inGame) return renderGame();
-  lotKey = resKey = null; handIds = null; hold = new Set(); zc.hand = zc.hud = zc.pA = zc.pB = zc.seats = zc.logz = null;
+  lotKey = resKey = null; handIds = null; hold = new Set(); zc.hand = zc.hud = zc.pA = zc.pB = zc.pH = zc.seats = zc.logz = null;
   if (S && S.phase === 'over' && (!prevS || prevS.phase !== 'over')) sfx.win();
   zone('menu', menuHTML());
 }
