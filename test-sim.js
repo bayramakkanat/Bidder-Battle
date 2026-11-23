@@ -135,6 +135,13 @@ async function main() {
   a.sock.emit('addBot');
   a.sock.emit('setDiff', { d: 'zor' });
   await until(a, s => s.diff === 'zor' && s.players.length === 3, 5000, 'bot ekleme / zorluk');
+  check(a.s.players.every(p => Number.isInteger(p.av) && p.av >= 0 && p.av < 16) && new Set(a.s.players.map(p => p.av)).size === 3, 'her oyuncunun (botlar dahil) farklı bir avatarı var');
+  const meB = () => b.s.players.find(p => p.id === b.s.me.id), bAv = meB().av;
+  b.sock.emit('setAv', { av: a.s.players[0].av }); await wait(150);
+  check(meB().av === bAv, 'başkasında olan avatar seçilemedi');
+  const free = [...Array(16).keys()].find(i => !a.s.players.some(p => p.av === i));
+  b.sock.emit('setAv', { av: free }); b.sock.emit('setAv', { av: 99 }); await wait(150);
+  check(meB().av === free, 'boş avatar seçilebildi, geçersiz değer yok sayıldı');
   a.sock.emit('setDiff', { d: 'çılgın' }); await wait(150);
   check(a.s.diff === 'zor', 'geçersiz zorluk reddedildi');
   b.sock.emit('setDiff', { d: 'kolay' }); await wait(150);
@@ -153,9 +160,14 @@ async function main() {
   const s1 = await until(a, s => s.phase === 'over', 90000, 'online oyun bitişi');
   checkFinal(s1, 3, 'online');
   const gid = s1.gid;
+  check(s1.series === null, 'ilk oyundan sonra seri skoru gösterilmiyor (tek oyun)');
   a.sock.emit('start');
   const s2 = await until(a, s => s.gid === gid + 1 && s.phase !== 'over', 5000, 'yeni oyun');
   check(s2.stats === null && s2.turn >= 1, 'yeni oyun temiz başladı');
+  const s3 = await until(a, s => s.gid === gid + 1 && s.phase === 'over', 90000, 'ikinci online oyunun bitişi');
+  const wins = s3.series ? s3.series.rows.reduce((t, r) => t + r.n, 0) : 0;
+  check(!!s3.series && s3.series.games === 2 && s3.series.rows.length === 3 && wins >= 2, `seri skoru: 2 oyun, 3 oyuncu, ${wins} galibiyet kayıtlı`);
+  check(!!s3.series && s3.series.rows.every((r, i, ar) => !i || ar[i - 1].n >= r.n), 'seri skoru galibiyet sayısına göre sıralı');
   a.sock.close(); b.sock.close();
   check(!serverErr.trim(), 'sunucu hata yazmadı' + (serverErr.trim() ? '\n' + serverErr : ''));
 }
