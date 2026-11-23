@@ -60,6 +60,9 @@ label.l{display:block;font-size:12px;color:var(--mu);margin:10px 0 4px;text-tran
 .avp{display:grid;grid-template-columns:repeat(8,1fr);gap:6px;margin:6px 0 4px}
 .avb{padding:0;aspect-ratio:1;font-size:22px;line-height:1;background:#0d1626;box-shadow:none;border:2px solid transparent;border-radius:12px}.avb:active{box-shadow:none}
 .avb.on{border-color:var(--ac);background:#1b2640}
+.av>img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;border-radius:50%;display:block}
+.avp.img{grid-template-columns:repeat(6,1fr);gap:8px}.avb img{width:100%;height:100%;object-fit:cover;border-radius:10px;display:block}
+.rxa{width:18px;height:18px;border-radius:50%;object-fit:cover;vertical-align:middle;margin-right:4px}
 /* Oyun sonu / lobi düzeni: telefonda tek sütun, geniş ekranda iki sütun */
 .over,.lob{display:grid;gap:10px}
 .ov-side,.ov-main,.lob-l,.lob-r{display:grid;gap:10px;align-content:start;min-width:0}
@@ -67,7 +70,7 @@ label.l{display:block;font-size:12px;color:var(--mu);margin:10px 0 4px;text-tran
 .ov-set{display:grid;gap:2px}.ov-set:empty{display:none}
 .ov-cta{position:sticky;bottom:0;z-index:4;display:grid;gap:2px;padding:14px 0 8px;background:linear-gradient(#0b122000,#0b1220 30%)}
 .lob-foot{text-align:center}
-.rk{background:linear-gradient(var(--pn2),var(--pn));border:1px solid var(--ln);border-radius:14px;box-shadow:0 6px 18px #0004;overflow:hidden}
+.rk{background:linear-gradient(var(--pn2),var(--pn));border:1px solid var(--ln);border-radius:14px;box-shadow:0 6px 18px #0004,inset 5px 0 0 var(--ac,transparent);overflow:hidden}
 .rk.first{border-color:var(--am)}.rk.out{opacity:.65}
 .rk>summary,.rk>.rks{display:grid;grid-template-columns:34px 38px minmax(0,1fr) auto;gap:6px 10px;align-items:center;padding:10px 12px;list-style:none}
 .rk>summary{cursor:pointer}.rk>summary::-webkit-details-marker{display:none}
@@ -108,7 +111,6 @@ label.l{display:block;font-size:12px;color:var(--mu);margin:10px 0 4px;text-tran
  .rk .th{grid-column:4;grid-row:1}.rk .tot{grid-column:5;grid-row:1}
  .lob{grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:14px 20px;align-items:start}
 }
-@media(min-width:900px) and (min-height:720px){.ov-side{position:sticky;top:12px}}
 @media(prefers-reduced-motion:reduce){.confetti{display:none}}
 /* ---------- Oyun ---------- */
 #game{max-width:560px;margin:0 auto;padding:10px;display:flex;flex-direction:column;gap:10px}
@@ -177,7 +179,8 @@ label.l{display:block;font-size:12px;color:var(--mu);margin:10px 0 4px;text-tran
 #seats{display:flex;flex-wrap:wrap;gap:8px}
 .seat{position:relative;display:flex;align-items:center;gap:8px;background:linear-gradient(var(--pn2),var(--pn));border:2px solid var(--ln);border-radius:14px;padding:6px 10px 6px 6px;flex:1 1 140px;min-width:0}
 .seat b{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:14px}.seat div{min-width:0}
-.seat.me{border-color:var(--am)}.seat.aud{background:linear-gradient(#2d4b2b,#1d321c)}.seat.cur{box-shadow:0 0 0 3px var(--tl)}.seat.out{opacity:.45}.seat.off{opacity:.6}
+.seat{box-shadow:inset 5px 0 0 var(--ac,transparent)}
+.seat.me{border-color:var(--am)}.seat.aud{background:linear-gradient(#2d4b2b,#1d321c)}.seat.cur{box-shadow:0 0 0 3px var(--tl),inset 5px 0 0 var(--ac,transparent)}.seat.out{opacity:.45}.seat.off{opacity:.6}
 .seat .mini{position:absolute;right:6px;top:-9px;width:26px;border-radius:4px;transform:rotate(8deg);box-shadow:0 2px 6px #000a;border:1px solid #fff5}
 .seat .dc{margin-left:auto;font-size:18px}
 #hand .panel{padding:10px 8px 6px}
@@ -195,10 +198,21 @@ label.l{display:block;font-size:12px;color:var(--mu);margin:10px 0 4px;text-tran
 #pause{background:#0b1220f2;z-index:52}
 .rxg{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}.rxg button{font-size:18px;padding:12px 8px}
 #reacts{position:fixed;top:calc(env(safe-area-inset-top) + 64px);left:50%;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;gap:6px;z-index:55;pointer-events:none;width:max-content;max-width:92vw}
-.rxb{background:#fffdf3;color:#2a2108;border-radius:14px;padding:6px 14px;font-weight:700;box-shadow:0 6px 18px #0008;animation:rxin 3s forwards;text-align:center}
+.rxb{border-left:6px solid var(--ac,#fffdf3);background:#fffdf3;color:#2a2108;border-radius:14px;padding:6px 14px;font-weight:700;box-shadow:0 6px 18px #0008;animation:rxin 3s forwards;text-align:center}
 .rxb small{display:block;color:#7a6a2a;font-size:12px;line-height:1.1}.rxb.em b{font-size:30px;line-height:1.1}
 @keyframes rxin{0%{opacity:0;transform:translateY(12px) scale(.8)}10%{opacity:1;transform:none}80%{opacity:1}100%{opacity:0;transform:translateY(-10px)}}
 #zoom img{max-width:min(92vw,520px);max-height:90vh;border-radius:18px;box-shadow:0 20px 60px #000}
+#zoom{touch-action:pan-y}
+.zn{position:absolute;top:50%;transform:translateY(-50%);width:48px;height:72px;padding:0;font-size:38px;line-height:1;z-index:2;border-radius:14px;opacity:.9}.zn:active{transform:translateY(-50%)}
+.zp{left:max(8px,env(safe-area-inset-left))}.znx{right:max(8px,env(safe-area-inset-right))}
+/* Kartlar (katalog) */
+#cat{position:fixed;inset:0;background:#000c;display:none;place-items:center;z-index:49;padding:14px}#cat.on{display:grid}
+.sheetbox.catbox{width:min(780px,100%);max-height:92vh;display:flex;flex-direction:column;overflow:hidden}.catbox .tabs{margin:4px 0 8px}
+.catf{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 10px}.catf .pill{flex:none;padding:7px 12px;font-size:13px}.catf:empty{display:none}
+.cg{display:grid;grid-template-columns:repeat(auto-fill,minmax(104px,1fr));gap:12px 10px;overflow-y:auto;flex:1;min-height:0;padding:4px 2px}
+.cc{cursor:zoom-in;text-align:center;min-width:0}.cc img{width:100%;aspect-ratio:var(--cw);object-fit:cover;border-radius:7%/5%;box-shadow:0 4px 10px #0009;display:block;background:#243252}
+.cc b{display:block;margin-top:5px;font-size:12px;line-height:1.2}.cc small{display:block;font-size:11px;line-height:1.25}.cc small.pos{color:var(--gr);font-weight:700}.cc small.neg{color:var(--rd);font-weight:700}
+.zct{position:absolute;bottom:calc(env(safe-area-inset-bottom) + 14px);left:50%;transform:translateX(-50%);background:#000b;border:1px solid #fff3;border-radius:12px;padding:3px 14px;font-weight:700;font-size:14px}
 .sheetbox{background:var(--pn);border:1px solid var(--ln);border-radius:18px;padding:16px;width:min(420px,100%);max-height:88vh;overflow:auto}
 .sheetbox h2{font-size:26px;color:var(--am);margin-bottom:8px}.sheetbox p,.sheetbox li{color:#cdd6ea;font-size:14px}.sheetbox ul{padding-left:18px;margin:6px 0}
 #toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);background:var(--rd);padding:10px 16px;border-radius:12px;display:none;z-index:60;font-weight:700;box-shadow:0 6px 20px #000a}
@@ -235,9 +249,10 @@ label.l{display:block;font-size:12px;color:var(--mu);margin:10px 0 4px;text-tran
   <div id="hand"></div>
   <div id="info"><div id="seats"></div><div id="logz"></div></div>
 </div>
-<div id="zoom" onclick="this.classList.remove('on')"><img alt=""></div>
+<div id="zoom" onclick="if(!event.target.closest('.zn')&&Date.now()-zSw>400)zoomClose()"><button class="alt zn zp" onclick="zoomStep(-1)" aria-label="Önceki" hidden>‹</button><img alt=""><button class="alt zn znx" onclick="zoomStep(1)" aria-label="Sonraki" hidden>›</button><div class="zct" hidden></div></div>
 <div id="sheet" onclick="if(event.target===this)sheet(0)"><div class="sheetbox"><h2>Menü</h2><div class="plist">
   <button class="alt" onclick="sheet(0);rules(1)">📖 Nasıl oynanır?</button>
+  <button class="alt" onclick="sheet(0);catalog(1)">🃏 Kartlar</button>
   <button class="alt" onclick="sheet(0);toggleFs()">⛶ Tam ekran</button>
   <button class="alt" id="sndBtn" onclick="toggleSound()"></button>
   <label class="l" style="margin:0">Ses seviyesi</label><input type="range" id="volR" min="0" max="100" step="5" oninput="setVol(this.value)" onchange="sfx.coin()">
@@ -254,6 +269,7 @@ label.l{display:block;font-size:12px;color:var(--mu);margin:10px 0 4px;text-tran
 <li><b>Eşyalar:</b> Hurda eşyaların değeri <b>eksidir</b>! Değerli ve koleksiyon eşyaları servet kazandırır.</li>
 <li><b>Olaylar:</b> <b>Tahribat</b> depoyu ve tüm eşyaları geçersiz kılar; <b>Sahte Altın</b> en pahalı eşyayı geçersiz kılar; <b>Güvenlik Ağı</b> bir Olay kartını iptal eder.</li>
 </ul><button class="cta" onclick="rules(0)">Anladım</button></div></div>
+<div id="cat" onclick="if(event.target===this)catalog(0)"><div class="sheetbox catbox"><h2>Kartlar</h2><div class="tabs" id="catTabs"></div><div class="catf" id="catF"></div><div class="cg" id="catG"></div><button class="alt" style="width:100%;margin-top:10px;flex:none" onclick="catalog(0)">Kapat</button></div></div>
 <div id="rx" onclick="if(event.target===this)reactPanel(0)"><div class="sheetbox"><h2>Tepki gönder</h2><div class="rxg" id="rxg"></div><button class="alt" style="width:100%;margin-top:10px" onclick="reactPanel(0)">Kapat</button></div></div>
 <div id="reacts"></div>
 <div id="pause"><div class="sheetbox center"><h2>⏸ Duraklatıldı</h2><p>Oyun beklemede, süre işlemiyor.</p><button class="cta" onclick="go('pause',{on:false})">▶ Devam et</button></div></div>
@@ -270,11 +286,14 @@ let S = null, prevS = null, off = 0, nameDraft = localStorage.getItem('bbName') 
 const q0 = new URLSearchParams(location.search).get('oda') || '';
 let codeDraft = q0.toUpperCase(); if (q0) mode = 'online';
 const sv = JSON.parse(localStorage.getItem('bb') || '{}');
-/* ---------- Avatarlar (emoji + renk; sunucudaki NAV ile aynı sayıda olmalı) ---------- */
-const AV = [['🦊', '#e8832a'], ['🐼', '#8f9cb8'], ['🦁', '#d9a521'], ['🐙', '#c0567d'], ['🦉', '#a9825a'], ['🐸', '#35c46c'], ['🦄', '#b07af0'], ['🐯', '#f08a2e'], ['🐧', '#2fd0df'], ['🦈', '#4a90d9'], ['🐻', '#b5764a'], ['🦖', '#52b56a'], ['👽', '#7be0a0'], ['🤠', '#d9a45b'], ['🦅', '#c9a227'], ['🐲', '#e5484d']];
-const avHTML = (p, cls = '') => { const a = AV[(Number.isInteger(p.av) ? p.av : 0) % AV.length]; return `<div class="av ${cls}${p.bot ? ' bot' : ''}" style="--ac:${a[1]}">${a[0]}</div>`; };
-let avDraft = (x => x !== null && x !== '' && +x >= 0 && +x < AV.length ? Math.floor(+x) : Math.floor(Math.random() * AV.length))(localStorage.getItem('bbAv'));
-const avPicker = (cur, taken) => `<div class="avp">${AV.map((a, i) => `<button class="avb${i === cur ? ' on' : ''}" style="--ac:${a[1]}" ${taken.has(i) ? 'disabled' : ''} onclick="pickAv(${i})" aria-label="Avatar ${a[0]}">${a[0]}</button>`).join('')}</div>`;
+/* ---------- Avatarlar (emoji yedeği + renk; sunucudaki NAV ile aynı sayıda olmalı). İlk 6 avatar botların (BOTS sırası). avatars/01.webp … 24.webp varsa görsel gösterilir, yoksa emoji ---------- */
+const AV = [['🦊', '#e8832a'], ['🐙', '#c0567d'], ['🦁', '#d9a521'], ['🤠', '#d9a45b'], ['🦉', '#a9825a'], ['🦄', '#b07af0'], ['🐼', '#8f9cb8'], ['🐸', '#35c46c'], ['🐯', '#f08a2e'], ['🐧', '#2fd0df'], ['🦈', '#4a90d9'], ['🐻', '#b5764a'], ['🦖', '#52b56a'], ['👽', '#7be0a0'], ['🦅', '#c9a227'], ['🐲', '#e5484d'], ['🦦', '#9b7653'], ['🐺', '#8f9cb8'], ['🦔', '#a37b5c'], ['🐢', '#4fa66b'], ['🦜', '#e0524d'], ['🐝', '#f1b21f'], ['🦋', '#5aa9e6'], ['🐳', '#3f7fbf']];
+let AVF = new Set(); const AVC = {}; // AVF: görseli olan avatarlar; AVC: görselin köşe (arka plan) rengi = oyuncu rengi
+const avIdx = x => (Number.isInteger(x) ? x : 0) % AV.length, avSrc = i => `avatars/${String(i + 1).padStart(2, '0')}.webp`, avCol = x => AVC[avIdx(x)] || AV[avIdx(x)][1];
+const avFace = i => AVF.has(i) ? `<img src="${avSrc(i)}" alt="" onerror="this.replaceWith('${AV[i][0]}')">` : AV[i][0];
+const avHTML = (p, cls = '') => `<div class="av ${cls}${p.bot ? ' bot' : ''}" style="--ac:${avCol(p.av)}">${avFace(avIdx(p.av))}</div>`;
+let avDraft = (x => x !== null && x !== '' && +x >= 0 && +x < AV.length ? Math.floor(+x) : 6 + Math.floor(Math.random() * (AV.length - 6)))(localStorage.getItem('bbAv')); // ilk kez: rastgele (ilk 6 = bot karakterleri hariç)
+const avPicker = (cur, taken) => `<div class="avp${AVF.size ? ' img' : ''}">${AV.map((a, i) => `<button class="avb${i === cur ? ' on' : ''}" style="--ac:${avCol(i)}" ${taken.has(i) ? 'disabled' : ''} onclick="pickAv(${i})" aria-label="Avatar ${i + 1}">${avFace(i)}</button>`).join('')}</div>`;
 const pickAv = i => { avDraft = i; localStorage.setItem('bbAv', String(i)); if (S) go('setAv', { av: i }); else { zc.menu = null; render(); } };
 
 /* ---------- Ses efektleri (WebAudio, dosya gerekmez) ---------- */
@@ -299,6 +318,30 @@ const toggleVib = () => { if (!navigator.vibrate) return toast('Bu cihaz titreş
 const setVol = v => sfx.setVol(v / 100);
 const sheet = on => { $('#sndBtn').textContent = sfx.mute ? '🔇 Ses kapalı' : '🔊 Ses açık'; $('#volR').value = Math.round(sfx.vol * 100); $('#vibBtn').textContent = vibText(); $('#sheet').classList.toggle('on', !!on); };
 const rules = on => $('#rules').classList.toggle('on', !!on);
+/* ---------- Kartlar (katalog): tüm eşya / olay kartları ve depo çeşitleri; kart tıklanınca büyür, aralarında gezilir ---------- */
+let CAT = null, catTab = 'items', catKind = 'all';
+const CAT_KINDS = [['all', 'Hepsi'], ['collectible', '🏆 Koleksiyon'], ['valuable', '💎 Değerli'], ['common', '📦 Sıradan'], ['scrap', '🗑️ Hurda'], ['event', '⚡ Olay']], CAT_ORD = ['collectible', 'valuable', 'common', 'scrap', 'event'];
+const CAT_EVT = { fraud: 'En pahalı eşyayı geçersiz kılar', shield: 'Bir Olay kartını iptal eder', wreck: 'Tahribat: depodaki tüm eşyaları geçersiz kılar' };
+const catSet = (t, k) => { if (t) catTab = t; if (k) catKind = k; catRender(); };
+function catRender() {
+  $('#catTabs').innerHTML = [['items', '🧳 Eşyalar'], ['storages', '📦 Depolar']].map(([k, t]) => `<button class="tab ${k === catTab ? 'on' : ''}" onclick="catSet('${k}')">${t}</button>`).join('');
+  const f = $('#catF'), g = $('#catG');
+  if (!CAT) { f.innerHTML = ''; g.innerHTML = '<div class="empty">Yükleniyor…</div>'; return; }
+  if (catTab === 'storages') {
+    f.innerHTML = '';
+    g.innerHTML = CAT.storages.map(c => `<div class="cc" data-z="cards/${c.img}.jpg"><img loading="lazy" src="cards/${c.img}.jpg" alt="${esc(c.name)}"><b>${esc(c.name)}</b><small>${c.items} eşya · ${c.open ? '🔓 açık kart' : '🔒 açık kart yok'}</small><small>👁 ${esc(PEEK_TXT[c.peek] || '-')}</small><small>Destede ${c.n} adet</small></div>`).join('');
+    return;
+  }
+  f.innerHTML = CAT_KINDS.map(([k, t]) => `<button class="pill ${k === catKind ? 'on' : ''}" onclick="catSet(null,'${k}')">${t}</button>`).join('');
+  const list = CAT.items.filter(c => catKind === 'all' || c.kind === catKind).sort((a, b) => CAT_ORD.indexOf(a.kind) - CAT_ORD.indexOf(b.kind) || b.value - a.value);
+  g.innerHTML = list.map(c => `<div class="cc" data-z="cards/${c.img}.jpg"><img loading="lazy" src="cards/${c.img}.jpg" alt="${esc(c.name)}"><b>${esc(c.name)}</b>${c.kind === 'event' ? `<small>${esc(CAT_EVT[c.effect] || '')}</small>` : `<small class="${c.value < 0 ? 'neg' : c.value > 0 ? 'pos' : ''}">${fmt(c.value)}</small>`}</div>`).join('');
+  g.scrollTop = 0;
+}
+const catalog = async on => {
+  if (on === 0) return $('#cat').classList.remove('on');
+  $('#cat').classList.add('on'); catRender();
+  if (!CAT) { try { CAT = await (await fetch('/catalog.json')).json(); } catch (e) { toast('Kartlar yüklenemedi'); return catalog(0); } catRender(); }
+};
 /* ---------- Hızlı tepkiler ---------- */
 let rxAt = 0;
 const reactPanel = on => { if (on === 0) return $('#rx').classList.remove('on'); $('#rxg').innerHTML = (S && S.reacts || []).map((t, i) => `<button class="alt" onclick="sendReact(${i})">${esc(t)}</button>`).join(''); $('#rx').classList.add('on'); };
@@ -311,7 +354,17 @@ const toggleFs = () => {
   try { fsOn() ? ex.call(document) : req.call(fsRoot); } catch (e) { toast('Tam ekran açılamadı'); }
 };
 document.addEventListener('keydown', e => { if ((e.key === 'f' || e.key === 'F') && !/INPUT|TEXTAREA/.test(document.activeElement.tagName) && !e.ctrlKey && !e.metaKey) toggleFs(); });
-const zoom = src => { $('#zoom img').src = src; $('#zoom').classList.add('on'); };
+// Eşya büyütme: aynı gruptaki (oyuncunun eşyaları / elim) kartlar arasında kapatmadan gezilir (‹ ›, kaydırma, ← →, Esc)
+let zg = { l: [], i: 0 }, zSw = 0;
+const zoomShow = () => { const n = zg.l.length; $('#zoom img').src = zg.l[zg.i]; document.querySelectorAll('#zoom .zn').forEach(b => b.hidden = n < 2); const c = $('#zoom .zct'); c.hidden = n < 2; c.textContent = `${zg.i + 1} / ${n}`; };
+const zoom = (l, i = 0) => { zg = { l: Array.isArray(l) ? l : [l], i: Math.max(0, i) }; zoomShow(); $('#zoom').classList.add('on'); };
+const zoomStep = d => { const n = zg.l.length; if (n < 2) return; zg.i = (zg.i + d + n) % n; zoomShow(); };
+const zoomClose = () => $('#zoom').classList.remove('on');
+document.addEventListener('keydown', e => { if (e.key === 'Escape' && !$('#zoom').classList.contains('on')) catalog(0); if (!$('#zoom').classList.contains('on')) return; if (e.key === 'ArrowLeft') zoomStep(-1); else if (e.key === 'ArrowRight') zoomStep(1); else if (e.key === 'Escape') zoomClose(); });
+(() => { let x0 = null; const zm = $('#zoom');
+  zm.addEventListener('touchstart', e => { x0 = e.touches.length === 1 ? e.touches[0].clientX : null; }, { passive: true });
+  zm.addEventListener('touchend', e => { if (x0 === null) return; const dx = e.changedTouches[0].clientX - x0; x0 = null; if (Math.abs(dx) > 50) { zSw = Date.now(); zoomStep(dx < 0 ? 1 : -1); } }, { passive: true });
+})();
 const toast = (m, ms = 2600) => { const t = $('#toast'); t.textContent = m; t.style.display = 'block'; clearTimeout(toast.h); toast.h = setTimeout(() => t.style.display = 'none', ms); };
 ['arka-esya', 'arka-depo', 'mezatci'].forEach(n => { new Image().src = `cards/${n}.jpg`; });
 // Tüm kart görsellerini arka planda, 3'er 3'er önceden yükle: yavaş bağlantıda boş kart görünmesin (servis çalışanı sayesinde sonraki açılışlarda anında gelir)
@@ -326,6 +379,18 @@ const toast = (m, ms = 2600) => { const t = $('#toast'); t.textContent = m; t.st
   } catch (e) {}
 })();
 
+// Avatar görselleri: hangileri var? (avatars/NN.webp) → önceden yükle, köşe rengini oyuncu rengi olarak al
+(async function loadAvatars() {
+  try {
+    const list = await (await fetch('/avatars.json')).json(); if (!list.length) return;
+    await Promise.all(list.map(i => new Promise(res => {
+      const im = new Image();
+      im.onload = () => { try { const c = document.createElement('canvas'); c.width = c.height = 4; const x = c.getContext('2d'); x.drawImage(im, 0, 0, 4, 4); const d = x.getImageData(0, 0, 1, 1).data; AVC[i] = `rgb(${d[0]},${d[1]},${d[2]})`; } catch (e) {} res(); };
+      im.onerror = res; im.src = avSrc(i);
+    })));
+    AVF = new Set(list); zc.menu = zc.seats = zc.hud = null; render();
+  } catch (e) {}
+})();
 sock.on('connect', () => { if (sv.code && sv.token) sock.emit('rejoin', sv); });
 /* ---------- Bağlantı durumu ---------- */
 let everUp = false, netT;
@@ -343,7 +408,7 @@ sock.on('forget', d => { // oda artık yok (sunucu yeniden başlamış / oda kap
 sock.on('err', m => { toast(m); sfx.bad(); });
 sock.on('react', d => {
   const box = $('#reacts'), el = document.createElement('div'), em = [...d.t].length <= 2;
-  el.className = 'rxb' + (em ? ' em' : ''); el.innerHTML = `<small>${Number.isInteger(d.av) ? AV[d.av % AV.length][0] + ' ' : ''}${esc(d.name)}</small><b>${esc(d.t)}</b>`;
+  el.className = 'rxb' + (em ? ' em' : ''); el.style.setProperty('--ac', avCol(d.av)); el.innerHTML = `<small>${Number.isInteger(d.av) ? (AVF.has(avIdx(d.av)) ? `<img class="rxa" src="${avSrc(avIdx(d.av))}" alt="">` : AV[avIdx(d.av)][0] + ' ') : ''}${esc(d.name)}</small><b>${esc(d.t)}</b>`;
   box.appendChild(el); while (box.children.length > 4) box.firstChild.remove();
   setTimeout(() => el.remove(), 3100); sfx.tick();
 });
@@ -385,7 +450,7 @@ const openRk = new Set(), toggleRk = (id, on) => on ? openRk.add(id) : openRk.de
 const rankHTML = (s, p, i) => {
   const top = p.items.slice().sort((a, b) => b.value - a.value), th = top.slice(0, 4), cls = `rk${i === 0 && !p.out ? ' first' : ''}${p.out ? ' out' : ''}`;
   const head = `<div class="no">${p.out ? '💀' : i + 1}</div>${avHTML(p)}<div class="rn"><b>${esc(p.name)}${p.id === s.me.id ? ' (sen)' : ''}</b><small>Para ${fmt(p.money)} + Eşya ${fmt(p.iv)} · ${p.items.length} eşya${p.out ? ' · elendi' : ''}</small></div><div class="tot">${fmt(p.total)}</div>${th.length ? `<div class="th">${th.map(c => `<img class="tn" src="${cardUrl(c)}" alt="${esc(c.name)}" loading="lazy">`).join('')}${top.length > th.length ? `<span class="more">+${top.length - th.length}</span>` : ''}</div>` : ''}`;
-  return top.length ? `<details class="${cls}" ${openRk.has(p.id) ? 'open' : ''} ontoggle="toggleRk('${p.id}',this.open)"><summary title="Kartları göster / gizle">${head}</summary><div class="fan">${top.map(c => `<div class="hc" data-z="${cardUrl(c)}"><img src="${cardUrl(c)}" alt="${esc(c.name)}" loading="lazy"></div>`).join('')}</div></details>` : `<div class="${cls}"><div class="rks">${head}</div></div>`;
+  return top.length ? `<details class="${cls}" style="--ac:${avCol(p.av)}" ${openRk.has(p.id) ? 'open' : ''} ontoggle="toggleRk('${p.id}',this.open)"><summary title="Kartları göster / gizle">${head}</summary><div class="fan">${top.map(c => `<div class="hc" data-z="${cardUrl(c)}"><img src="${cardUrl(c)}" alt="${esc(c.name)}" loading="lazy"></div>`).join('')}</div></details>` : `<div class="${cls}" style="--ac:${avCol(p.av)}"><div class="rks">${head}</div></div>`;
 };
 let cuGid = null; // podyumdaki toplamlar oyun sonunda bir kez sayarak yükselir
 const countUp = () => {
@@ -413,7 +478,7 @@ function menuHTML() {
   <div class="tabs"><button class="tab ${mode === 'solo' ? 'on' : ''}" onclick="setMode('solo')">🤖 Botlara karşı</button><button class="tab ${mode === 'online' ? 'on' : ''}" onclick="setMode('online')">🌐 Online</button></div>
   ${mode === 'solo' ? `<label class="l">Rakip sayısı</label><div class="pills">${[2, 3, 4, 5, 6].map(n => `<button class="pill ${n === nBots ? 'on' : ''}" onclick="setBots(${n})">${n}</button>`).join('')}</div><label class="l">Bot zorluğu</label>${diffPills(diffDraft, 'setDiffDraft')}<label class="l">Oyun hızı (süreler)</label>${speedPills(speedDraft, 'setSpeedDraft')}<button class="cta" onclick="startSolo()">🔨 Oyuna başla</button>`
     : `<button class="cta" onclick="go('create',{name:nameDraft,av:avDraft})">➕ Yeni oda kur</button><div class="or">— veya arkadaşının kodunu gir —</div><input placeholder="ODA KODU" maxlength="4" value="${esc(codeDraft)}" style="text-transform:uppercase;text-align:center;letter-spacing:.3em;font-weight:800" oninput="codeDraft=this.value"><div class="row"><button class="alt" onclick="go('join',{name:nameDraft,code:codeDraft,av:avDraft})">Odaya katıl</button></div>`}
-  </div><div class="center"><button class="link" onclick="rules(1)">📖 Nasıl oynanır?</button><button class="link" onclick="toggleFs()">⛶ Tam ekran</button></div>`;
+  </div><div class="center"><button class="link" onclick="rules(1)">📖 Nasıl oynanır?</button><button class="link" onclick="catalog(1)">🃏 Kartlar</button><button class="link" onclick="toggleFs()">⛶ Tam ekran</button></div>`;
   if (s.phase === 'lobby') {
     const host = s.host === s.me.id, meP = s.players.find(p => p.id === s.me.id);
     return `<div class="lob"><div class="logo lob-head"><h1 style="font-size:34px">Oda <span>hazır</span></h1></div><div class="lob-l"><div class="panel"><small>ODA KODU</small><div class="code">${s.code}</div><button class="alt cta" onclick="copyLink()">🔗 Davet bağlantısını kopyala</button></div><div class="panel"><small>AVATARIN</small>${avPicker(meP ? meP.av : avDraft, new Set(s.players.filter(p => p.id !== s.me.id).map(p => p.av)))}</div></div><div class="lob-r">
@@ -534,7 +599,7 @@ function panels() {
 }
 const PEEK_TXT = { before: 'Katılımdan önce (herkes)', after: 'Katılımdan sonra (sadece katılanlar)', never: 'Yok (sadece mezatçı bakar)' };
 const storageChips = st => st ? `<span>📦 <b>${st.items}</b> eşya</span><span>${st.open ? '🔓 Bir eşya açılır' : '🔒 Açılan eşya yok'}</span><span>👁 Gizlice bak: <b>${PEEK_TXT[st.peek] || '-'}</b></span>` : '';
-const seatsHTML = () => S.players.map(p => `<div class="seat ${p.id === S.me.id ? 'me' : ''} ${p.id === S.aud ? 'aud' : ''} ${p.id === S.cur ? 'cur' : ''} ${p.out ? 'out' : ''} ${!p.on ? 'off' : ''}" id="seat-${p.id}">${p.id === S.aud ? '<img class="mini" src="cards/mezatci.jpg" alt="Mezatçı">' : ''}${avHTML(p)}<div><b>${esc(p.name)}${p.out ? ' 💀' : ''}</b><small>${p.n} eşya${!p.on ? ' · çevrimdışı' : ''}</small></div><span class="dc">${p.dec === 'in' ? '✅' : p.dec === 'out' ? '❌' : p.id === S.cur ? '👉' : ''}</span></div>`).join('') + (S.nSpec ? `<small style="flex:1 1 100%;padding:2px 6px">👀 ${S.nSpec} izleyici</small>` : '');
+const seatsHTML = () => S.players.map(p => `<div class="seat ${p.id === S.me.id ? 'me' : ''} ${p.id === S.aud ? 'aud' : ''} ${p.id === S.cur ? 'cur' : ''} ${p.out ? 'out' : ''} ${!p.on ? 'off' : ''}" id="seat-${p.id}" style="--ac:${avCol(p.av)}">${p.id === S.aud ? '<img class="mini" src="cards/mezatci.jpg" alt="Mezatçı">' : ''}${avHTML(p)}<div><b>${esc(p.name)}${p.out ? ' 💀' : ''}</b><small>${p.n} eşya${!p.on ? ' · çevrimdışı' : ''}</small></div><span class="dc">${p.dec === 'in' ? '✅' : p.dec === 'out' ? '❌' : p.id === S.cur ? '👉' : ''}</span></div>`).join('') + (S.nSpec ? `<small style="flex:1 1 100%;padding:2px 6px">👀 ${S.nSpec} izleyici</small>` : '');
 function renderHand() {
   if (!S || !S.me) return;
   if (S.me.spec) return zone('hand', ''); // izleyicinin eli yok
@@ -595,7 +660,7 @@ function render() {
 document.addEventListener('click', e => {
   const sl = e.target.closest('#lot .slot');
   if (sl && sl.classList.contains('pick')) return go(lotMode, { i: +sl.dataset.i });
-  const z = e.target.closest('[data-z]'); if (z && z.dataset.z) zoom(z.dataset.z);
+  const z = e.target.closest('[data-z]'); if (z && z.dataset.z) { const g = z.closest('.fan, .hf, .cg'), els = g ? [...g.querySelectorAll('[data-z]')] : [z]; zoom(els.map(x => x.dataset.z), Math.max(0, els.indexOf(z))); }
 });
 setInterval(tick, 250);
 if ('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js').catch(() => {});

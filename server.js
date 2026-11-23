@@ -7,6 +7,8 @@ app.get('/healthz', (q, s) => s.send('ok')); // Render sağlık kontrolü
 app.get('/cards.json', (q, s) => { // kart görsellerinin listesi (istemci arka planda önceden yükler)
   try { s.set('Cache-Control', 'public, max-age=3600').json([...new Set(require('fs').readdirSync(__dirname + '/cards').filter(f => /\.(jpe?g|webp|png)$/i.test(f)).map(f => f.replace(/\.webp$/i, '.jpg')))]); } catch (e) { s.json([]); }
 });
+app.get('/catalog.json', (q, s) => s.set('Cache-Control', 'public, max-age=300').json(CATALOG)); // "Kartlar" bölümü: tüm eşya / olay kartları ve depo çeşitleri (adetleriyle)
+const CATALOG = { items: ITEMS.map(({ name, kind, value, effect, img }) => ({ name, kind, value, effect, img })), storages: Object.values(STORAGES.reduce((m, c) => { (m[c.name] = m[c.name] || { name: c.name, items: c.items, open: c.open, peek: c.peek, img: c.img, n: 0 }).n++; return m; }, {})) };
 const STATIC = ['manifest.webmanifest', 'sw.js', 'icon.svg', 'icon-192.png', 'icon-512.png', 'apple-touch-icon.png'];
 STATIC.forEach(f => app.get('/' + f, (q, s) => s.sendFile(__dirname + '/' + f, err => { if (err && !s.headersSent) s.status(404).end(); })));
 const fs = require('fs');
@@ -16,6 +18,10 @@ app.use('/cards', (q, s, next) => { // tarayıcı WebP destekliyorsa ve .webp do
   next();
 });
 app.use('/cards', express.static(__dirname + '/cards', { maxAge: '7d' }));
+app.get('/avatars.json', (q, s) => { // avatars/01.webp … 24.webp: hangi avatarların görseli var (sıfır tabanlı sıra: 01 → 0). Yoksa istemci emoji kullanır
+  try { s.set('Cache-Control', 'public, max-age=300').json(fs.readdirSync(__dirname + '/avatars').map(f => /^(\d{2})\.webp$/i.exec(f)).filter(Boolean).map(m => +m[1] - 1).filter(i => i >= 0 && i < NAV).sort((a, b) => a - b)); } catch (e) { s.json([]); }
+});
+app.use('/avatars', express.static(__dirname + '/avatars', { maxAge: '7d' }));
 const server = http.createServer(app), io = new Server(server);
 
 const MIN = +process.env.MIN_PLAYERS || 3, MAX = 7, START = 5000, FEE = 100, PENALTY = 1000;
@@ -26,10 +32,10 @@ const SP = { yavas: 1.6, normal: 1, hizli: 0.65 }, spd = r => SP[r.speed] || 1; 
 const REACTS = ['👏', '😂', '😱', '🔥', '😎', '💸', 'Bu benim!', 'Yüksek tutma!', 'Blöf mü?', 'Hızlı ol!', 'Aferin!', 'Hurda çıkacak 😏']; // hazır tepkiler (istemci sıra numarası gönderir)
 const fmt = n => n.toLocaleString('tr-TR') + '$';
 const uid = () => Math.random().toString(36).slice(2, 10);
-const NAV = 16; // avatar sayısı (listesi ve renkleri istemcide: `AV`)
+const NAV = 24; // avatar sayısı (listesi ve emoji yedekleri istemcide: `AV`; görseller: avatars/01.webp … 24.webp). İlk 6 avatar botlara ayrılmıştır (`BOTS`)
 function avFree(r, want, self) { // odada aynı avatar iki kişiye verilmez: istenen doluysa sıradaki boş olanı alınır
   const used = new Set(r.players.concat(r.specs || []).filter(p => p !== self).map(p => p.av));
-  want = Number.isInteger(want) && want >= 0 && want < NAV ? want : Math.floor(Math.random() * NAV);
+  want = Number.isInteger(want) && want >= 0 && want < NAV ? want : 6 + Math.floor(Math.random() * (NAV - 6)); // rastgele avatar: ilk 6 (bot karakterleri) hariç
   for (let k = 0; k < NAV; k++) { const a = (want + k) % NAV; if (!used.has(a)) return a; }
   return want;
 }
@@ -412,7 +418,7 @@ const onConn = sock => {
 io.on('connection', onConn);
 
 // ---- Botlar ----
-const BOTS = [['Kurnaz Kemal', 'temkinli', 0], ['Dengeli Deniz', 'dengeli', 3], ['Gözü Kara Gül', 'gozukara', 2], ['Blöfçü Bora', 'gozukara', 13], ['Hesapçı Hale', 'temkinli', 4], ['Şanslı Selim', 'dengeli', 6]]; // [ad, kişilik, avatar]
+const BOTS = [['Kurnaz Kemal', 'temkinli', 0], ['Dengeli Deniz', 'dengeli', 1], ['Gözü Kara Gül', 'gozukara', 2], ['Blöfçü Bora', 'gozukara', 3], ['Hesapçı Hale', 'temkinli', 4], ['Şanslı Selim', 'dengeli', 5]]; // [ad, kişilik, avatar sırası (avatars/01..06.webp)]
 const MARG = { temkinli: 0.55, dengeli: 0.85, gozukara: 1.15 }; // tahmin edilen değerin kaçına kadar teklif verir
 // Zorluk: m = teklif çarpanı, n = tahmin hatası (büyüdükçe bot daha şaşırtıcı), act = bot her saniye hamle yapma olasılığı (reflekslerini belirler)
 const DIFF = { kolay: { m: 0.85, n: 0.7, act: 0.35 }, normal: { m: 1, n: 0.3, act: 0.6 }, zor: { m: 1.1, n: 0.1, act: 0.85 } };

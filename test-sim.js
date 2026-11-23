@@ -135,11 +135,14 @@ async function main() {
   a.sock.emit('addBot');
   a.sock.emit('setDiff', { d: 'zor' });
   await until(a, s => s.diff === 'zor' && s.players.length === 3, 5000, 'bot ekleme / zorluk');
-  check(a.s.players.every(p => Number.isInteger(p.av) && p.av >= 0 && p.av < 16) && new Set(a.s.players.map(p => p.av)).size === 3, 'her oyuncunun (botlar dahil) farklı bir avatarı var');
+  check(a.s.players.every(p => Number.isInteger(p.av) && p.av >= 0 && p.av < 24) && new Set(a.s.players.map(p => p.av)).size === 3, 'her oyuncunun (botlar dahil) farklı bir avatarı var');
+  const avList = await (await fetch(`${URL}/avatars.json`)).json();
+  check(Array.isArray(avList) && avList.every(i => Number.isInteger(i) && i >= 0 && i < 24), `/avatars.json geçerli (${avList.length} avatar görseli var; 0 ise emoji yedeği kullanılır)`);
+  check(a.s.players.filter(p => p.bot).every(p => p.av < 6), 'bot avatarları ilk 6 avatarın arasında (bota özel karakterler)');
   const meB = () => b.s.players.find(p => p.id === b.s.me.id), bAv = meB().av;
   b.sock.emit('setAv', { av: a.s.players[0].av }); await wait(150);
   check(meB().av === bAv, 'başkasında olan avatar seçilemedi');
-  const free = [...Array(16).keys()].find(i => !a.s.players.some(p => p.av === i));
+  const free = [...Array(24).keys()].find(i => !a.s.players.some(p => p.av === i));
   b.sock.emit('setAv', { av: free }); b.sock.emit('setAv', { av: 99 }); await wait(150);
   check(meB().av === free, 'boş avatar seçilebildi, geçersiz değer yok sayıldı');
   a.sock.emit('setDiff', { d: 'çılgın' }); await wait(150);
