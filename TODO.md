@@ -53,7 +53,27 @@ Sebep: zafer ekranı ve lobi tek sütun (560 px) olduğundan masaüstünde yanla
 
 29. ✅ 🟡 **Kartlar bölümü (katalog)** – ana menüde "🃏 Kartlar" bağlantısı ve oyun içi ☰ menüsünde "🃏 Kartlar" düğmesi; tam ekran pencere: **Eşyalar** sekmesi (59 kart; filtre: Hepsi / Koleksiyon / Değerli / Sıradan / Hurda / Olay; değer ya da Olay açıklamasıyla) ve **Depolar** sekmesi (5 çeşit: eşya sayısı, açık kart, gizlice bak kuralı, destedeki adet). Karta tıklayınca büyür, galeri gibi gezilir (28. madde). Veri sunucudan: `/catalog.json` (`CATALOG`, `server.js`); istemci: `catalog`, `catRender` (`index.html`). Esc kapatır; elle denenmedi
 
-30. ✅ 🟡 **Ana menü iki sütun** – ≥900 px'te solda başlık/logo (büyük), oyuncu adı + avatar seçici ve alt bağlantılar (Nasıl oynanır / Kartlar / Tam ekran), sağda oyun modu (Botlara karşı / Online) ve ayarlar + başlat düğmesi; telefonda tek sütun, sıra: başlık, ad + avatar, mod, bağlantılar. Menü artık lobi / oyun sonu gibi `#menu.wide` olur (`.home`, `.h-logo` / `.h-who` / `.h-mode` / `.h-links`, `menuHTML`, `index.html`); elle denenmedi
+30. ✅ 🟡 **Ana menü iki sütun** – ≥900 px'te üstte ortalı büyük başlık/logo, altta eşit yükseklikte iki panel (solda oyuncu adı + avatar seçici, sağda oyun modu: Botlara karşı / Online, ayarlar; başlat düğmesi panelin altina hizalı), en altta ortalı bağlantılar (Nasıl oynanır / Kartlar / Tam ekran) – ilk sürümde başlık solda, sağ panel ortadaydı, simétri bozuktu (ekran görüntüsü 2026-11-23) ve düzeltildi; telefonda tek sütun, sıra: başlık, ad + avatar, mod, bağlantılar. Menü artık lobi / oyun sonu gibi `#menu.wide` olur (`.home`, `.h-logo` / `.h-who` / `.h-mode` / `.h-links`, `menuHTML`, `index.html`); elle denenmedi
+
+## Elle test listesi (2026-11-23) – yeni özellik eklemeden önce
+Hiçbiri elle denenmedi; sorun çıkarsa hangi maddeden geldiği bulunabilsin diye tek tek işaretle.
+- ⬜ `npm test` (avatar benzersizliği, seri skoru, yeni oyun)
+- ⬜ Telefonda ve bilgisayarda birer botlu oyun; en az bir kez gerçek kişilerle online oyun
+- ⬜ Avatarlar (27): menüde yüz ızgarası, köşe rengi = oyuncu rengi, bot 🤖 rozeti
+- ⬜ Ana menü iki sütun (30) ve lobi (21): bilgisayar + telefon; Online sekmesinde boşluk
+- ⬜ Zafer ekranı (19, 22, 23): podyum, rozetler, düğmelerin üst üste binmemesi
+- ⬜ Eşya büyütmede gezinme (28) ve Kartlar bölümü (29): telefonda kaydırma, ‹ › düğmeleri, Esc
+- ⬜ Okunurluk (26), geniş monitör (25), ses ayarları (18)
+- Not: sunucu yeniden başlatılmalı (`/catalog.json` yeni), tarayıcada Ctrl+F5; oyun sırasında GitHub'a push yapma (aktif odalar silinir)
+
+## Sonraki fikirler (2026-11-23, test sonrası için) – test bitmeden başlanmaz
+Öncelik: 🔴 çok faydalı · 🟡 faydalı · 🟢 eğlence / sonra
+31. ⬜ 🔴 **Push öncesi aktif oda bilgisi** – oyun sırasında GitHub'a push yapılınca aktif odalar siliniyor (bkz. 13); sunucuya küçük bir adres (örn. `/durum`) eklenip şu an kaç aktif oda / oyuncu olduğu gösterilsin, push'tan önce bakılabilsin. Sadece sayılar; oda kodları ve oyuncu adları gösterilmez
+32. ⬜ 🟡 **İlk kez oynayanlar için kısa tanıtım** – kural metni var ama okunmuyor; ilk oyunda birkaç adımlık ipucu ("Depoyu aç, gizlice bak, teklif ver" gibi), tarayıcıda "gösterildi" işareti saklı (`localStorage`), İpucunu atla / baştan göster düğmesi ☰ menüsünde
+33. ⬜ 🟡 **Kişisel istatistikler** – tarayıcada saklanan toplam oyun, galibiyet ve en yüksek skor (seri skoru 16'nın uzun vadeli hali); ana menüde küçük bir satır ya da pencere, sıfırlama düğmesi; sunucuya hesap / veri gönderilmez
+34. ⬜ 🟢 **"Rastgele avatar" seçeneği** – avatar seçicide ek seçenek: seçen kişiye her oyunda yeni bir yüz gelir (ilk 6 bot yüzü hariç, odada çakışma olmaz); varsayılan davranış (seçilen avatar sabit kalır) değişmez
+35. ⬜ 🟢 **Mezat ambiyansı** – hafif arka plan müziği ve teklif süresi azaldıkça hızlanan tik sesi; mevcut ses aç/kapat ve ses seviyesi ayarlarıyla (`sfx`) kontrol edilir, varsayılan kapalı ya da düşük ses; müzik dosyası telif / kullanım hakları açısından kontrol edilmeli
+- Şimdilik yapılmayacak (büyük iş / denge riski): hesap sistemi, sıralama tablosu, yeni kart türleri, yeni oyun modu; önce mevcut kuralların oynanışta dengeli olup olmadığı görülmeli
 
 ## Notlar
 - Zafer ekranı hatası (2026-11-23): ≥900 px'te sol sütun (`.ov-side`) yapışkandı ve sayfa kaydırılınca alttaki oyun hızı / bot zorluğu düğmelerinin üzerine biniyordu; yapışkan (sticky) kural kaldırıldı (`index.html`), elle denenmeli.

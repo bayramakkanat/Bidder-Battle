@@ -112,9 +112,10 @@ label.l{display:block;font-size:12px;color:var(--mu);margin:10px 0 4px;text-tran
  .lob{grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:14px 20px;align-items:start}
 }
 .home{display:grid;gap:10px}.home .panel{margin:0}
-@media(min-width:900px){ /* ana menü: solda başlık + ad + avatar, sağda oyun modu */
- .home{grid-template-columns:minmax(0,1fr) minmax(0,1fr);grid-template-areas:"logo mode" "who mode" "links mode";grid-template-rows:auto auto 1fr;gap:14px 28px;align-items:start}
- .h-logo{grid-area:logo;margin:0 0 4px}.h-who{grid-area:who}.h-mode{grid-area:mode;align-self:center}.h-links{grid-area:links;align-self:start}
+@media(min-width:900px){ /* ana menü: üstte ortalı başlık, altta eşit yükseklikte iki panel (sol: ad + avatar, sağ: oyun modu), en altta ortalı bağlantılar */
+ .home{grid-template-columns:minmax(0,1fr) minmax(0,1fr);grid-template-areas:"logo logo" "who mode" "links links";gap:18px 28px;align-items:stretch}
+ .h-logo{grid-area:logo;margin:0 0 6px;justify-content:center}.h-logo>div{text-align:left}
+ .h-who{grid-area:who}.h-mode{grid-area:mode;display:flex;flex-direction:column}.h-mode>.cta:last-child{margin-top:auto}.h-links{grid-area:links}
  .h-logo img{width:120px}.h-logo h1{font-size:64px}
 }
 @media(prefers-reduced-motion:reduce){.confetti{display:none}}
