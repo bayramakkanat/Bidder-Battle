@@ -111,6 +111,12 @@ label.l{display:block;font-size:12px;color:var(--mu);margin:10px 0 4px;text-tran
  .rk .th{grid-column:4;grid-row:1}.rk .tot{grid-column:5;grid-row:1}
  .lob{grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:14px 20px;align-items:start}
 }
+.home{display:grid;gap:10px}.home .panel{margin:0}
+@media(min-width:900px){ /* ana menü: solda başlık + ad + avatar, sağda oyun modu */
+ .home{grid-template-columns:minmax(0,1fr) minmax(0,1fr);grid-template-areas:"logo mode" "who mode" "links mode";grid-template-rows:auto auto 1fr;gap:14px 28px;align-items:start}
+ .h-logo{grid-area:logo;margin:0 0 4px}.h-who{grid-area:who}.h-mode{grid-area:mode;align-self:center}.h-links{grid-area:links;align-self:start}
+ .h-logo img{width:120px}.h-logo h1{font-size:64px}
+}
 @media(prefers-reduced-motion:reduce){.confetti{display:none}}
 /* ---------- Oyun ---------- */
 #game{max-width:560px;margin:0 auto;padding:10px;display:flex;flex-direction:column;gap:10px}
@@ -473,12 +479,12 @@ const statsHTML = st => { // oyun sonu rozetleri
 };
 function menuHTML() {
   const s = S;
-  if (!s) return `<div class="logo"><img src="cards/mezatci.jpg" alt=""><div><h1>Depo<br><span>Savaşları</span></h1><p>Depoları mezatla kap, hazineyi bul, hurdaya kanma!</p></div></div>
-  <div class="panel"><label class="l">Oyuncu adı</label><input maxlength="14" placeholder="Adın" value="${esc(nameDraft)}" oninput="nameDraft=this.value;localStorage.setItem('bbName',this.value)"><label class="l">Avatar</label>${avPicker(avDraft, new Set())}
-  <div class="tabs"><button class="tab ${mode === 'solo' ? 'on' : ''}" onclick="setMode('solo')">🤖 Botlara karşı</button><button class="tab ${mode === 'online' ? 'on' : ''}" onclick="setMode('online')">🌐 Online</button></div>
+  if (!s) return `<div class="home"><div class="logo h-logo"><img src="cards/mezatci.jpg" alt=""><div><h1>Depo<br><span>Savaşları</span></h1><p>Depoları mezatla kap, hazineyi bul, hurdaya kanma!</p></div></div>
+  <div class="panel h-who"><label class="l">Oyuncu adı</label><input maxlength="14" placeholder="Adın" value="${esc(nameDraft)}" oninput="nameDraft=this.value;localStorage.setItem('bbName',this.value)"><label class="l">Avatar</label>${avPicker(avDraft, new Set())}</div>
+  <div class="panel h-mode"><div class="tabs"><button class="tab ${mode === 'solo' ? 'on' : ''}" onclick="setMode('solo')">🤖 Botlara karşı</button><button class="tab ${mode === 'online' ? 'on' : ''}" onclick="setMode('online')">🌐 Online</button></div>
   ${mode === 'solo' ? `<label class="l">Rakip sayısı</label><div class="pills">${[2, 3, 4, 5, 6].map(n => `<button class="pill ${n === nBots ? 'on' : ''}" onclick="setBots(${n})">${n}</button>`).join('')}</div><label class="l">Bot zorluğu</label>${diffPills(diffDraft, 'setDiffDraft')}<label class="l">Oyun hızı (süreler)</label>${speedPills(speedDraft, 'setSpeedDraft')}<button class="cta" onclick="startSolo()">🔨 Oyuna başla</button>`
     : `<button class="cta" onclick="go('create',{name:nameDraft,av:avDraft})">➕ Yeni oda kur</button><div class="or">— veya arkadaşının kodunu gir —</div><input placeholder="ODA KODU" maxlength="4" value="${esc(codeDraft)}" style="text-transform:uppercase;text-align:center;letter-spacing:.3em;font-weight:800" oninput="codeDraft=this.value"><div class="row"><button class="alt" onclick="go('join',{name:nameDraft,code:codeDraft,av:avDraft})">Odaya katıl</button></div>`}
-  </div><div class="center"><button class="link" onclick="rules(1)">📖 Nasıl oynanır?</button><button class="link" onclick="catalog(1)">🃏 Kartlar</button><button class="link" onclick="toggleFs()">⛶ Tam ekran</button></div>`;
+  </div><div class="center h-links"><button class="link" onclick="rules(1)">📖 Nasıl oynanır?</button><button class="link" onclick="catalog(1)">🃏 Kartlar</button><button class="link" onclick="toggleFs()">⛶ Tam ekran</button></div></div>`;
   if (s.phase === 'lobby') {
     const host = s.host === s.me.id, meP = s.players.find(p => p.id === s.me.id);
     return `<div class="lob"><div class="logo lob-head"><h1 style="font-size:34px">Oda <span>hazır</span></h1></div><div class="lob-l"><div class="panel"><small>ODA KODU</small><div class="code">${s.code}</div><button class="alt cta" onclick="copyLink()">🔗 Davet bağlantısını kopyala</button></div><div class="panel"><small>AVATARIN</small>${avPicker(meP ? meP.av : avDraft, new Set(s.players.filter(p => p.id !== s.me.id).map(p => p.av)))}</div></div><div class="lob-r">
@@ -650,7 +656,7 @@ function renderGame() {
 }
 function render() {
   const inGame = S && !['lobby', 'over'].includes(S.phase);
-  $('#game').hidden = !inGame; $('#menu').hidden = inGame; $('#menu').classList.toggle('wide', !!S && ['lobby', 'over'].includes(S.phase)); if (!inGame) $('#pause').classList.remove('on');
+  $('#game').hidden = !inGame; $('#menu').hidden = inGame; $('#menu').classList.toggle('wide', !S || ['lobby', 'over'].includes(S.phase)); if (!inGame) $('#pause').classList.remove('on');
   if (inGame) { openRk.clear(); return renderGame(); }
   lotKey = resKey = null; handIds = null; hold = new Set(); zc.hand = zc.hud = zc.pA = zc.pB = zc.pH = zc.seats = zc.logz = null;
   if (S && S.phase === 'over' && (!prevS || prevS.phase !== 'over')) sfx.win();
