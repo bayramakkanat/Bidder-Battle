@@ -4,6 +4,11 @@ const { ITEMS, STORAGES } = require('./data');
 const app = express();
 app.get('/', (q, s) => s.sendFile(__dirname + '/index.html'));
 app.get('/healthz', (q, s) => s.send('ok')); // Render sağlık kontrolü
+app.get('/durum', (q, s) => { // GitHub'a push'tan önce bak: şu an kaç oda / oyuncu aktif? Sadece sayılar (oda kodu ve oyuncu adı yok); safe = kimse çevrimiçi değil
+  const live = Object.values(rooms).filter(r => r.players.some(p => !p.bot && p.on) || (r.specs || []).some(p => p.on));
+  const n = live.reduce((t, r) => t + r.players.filter(p => !p.bot && p.on).length + (r.specs || []).filter(p => p.on).length, 0);
+  s.set('Cache-Control', 'no-store').json({ rooms: live.length, playing: live.filter(r => !['lobby', 'over'].includes(r.phase)).length, players: n, safe: !live.length });
+});
 app.get('/cards.json', (q, s) => { // kart görsellerinin listesi (istemci arka planda önceden yükler)
   try { s.set('Cache-Control', 'public, max-age=3600').json([...new Set(require('fs').readdirSync(__dirname + '/cards').filter(f => /\.(jpe?g|webp|png)$/i.test(f)).map(f => f.replace(/\.webp$/i, '.jpg')))]); } catch (e) { s.json([]); }
 });
@@ -84,7 +89,7 @@ function view(r, me) {
   }
   return {
     code: r.code, gid: r.gid, phase: r.phase, host: r.host, min: MIN, max: MAX, now: Date.now(), deadline: r.deadline || null,
-    me: { id: me.id, name: me.name, money: me.money, items: me.items, spec: !!me.spec }, nSpec: (r.specs || []).length,
+    me: { id: me.id, name: me.name, money: me.money, items: me.items, spec: !!me.spec, rnd: !!me.rndAv }, nSpec: (r.specs || []).length,
     log: r.log.slice(-8), turn: r.turn, total: r.total, aud: r.aud, storage: r.storage, step: r.step,
     decks: { item: (r.itemDeck || []).length, storage: (r.storageDeck || []).length },
     players: r.players.map(p => ({ id: p.id, name: p.name, bot: !!p.bot, on: p.on, out: p.eliminated, n: p.items.length, dec: r.dec && r.dec[p.id], av: p.av })),
@@ -122,7 +127,7 @@ function arm(r) {
 }
 
 function startGame(r) {
-  promoteSpecs(r);
+  promoteSpecs(r); reshuffleAv(r);
   r.players.forEach(p => Object.assign(p, { money: START, items: [], eliminated: false, turnsLed: 0, won: 0 }));
   r.itemDeck = shuffle(ITEMS); r.discard = []; r.storageDeck = shuffle(STORAGES);
   r.gid = (r.gid || 0) + 1; r.turn = 0; r.total = r.players.length * 2; r.seat = Math.floor(Math.random() * r.players.length) - 1;
@@ -160,14 +165,14 @@ function finish(r, res) {
   r.phase = 'result'; r.res = res; r.ready = {}; r.resAt = Date.now(); later(r, RESULT_MS * spd(r), () => nextTurn(r)); emit(r);
 }
 function startBid(r, bidders) {
-  r.phase = 'bid'; r.bidders = bidders.slice(); r.bid = { amt: 0, who: null, hist: [] };
-  later(r, OPEN_MS * spd(r), () => bidTimeout(r)); emit(r);
+  r.phase = 'bid'; r.bidders = bidders.slice(); r.bid = { amt: 0, who: null, hist: [], n: r.bn = (r.bn || 0) + 1 };
+  later(r, OPEN_MS * spd(r), () => bidTimeout(r)); emit(r); botPlan(r, null);
 }
 function setBid(r, id, amt, forced) {
-  r.bid.amt = amt; r.bid.who = id;
+  const prev = r.bid.who; r.bid.amt = amt; r.bid.who = id; r.bid.n = r.bn = (r.bn || 0) + 1; // n: botların bu teklife planladığı hamleler, teklif değişince geçersiz olur
   if (!r.bid.hot && amt >= 3000) { r.bid.hot = true; botSay(r, 'hot'); }
   r.bid.hist.unshift(`${P(r, id).name}: ${fmt(amt)}${forced ? ' (otomatik açılış)' : ''}`); r.bid.hist = r.bid.hist.slice(0, 5);
-  later(r, SELL_MS * spd(r), () => bidTimeout(r)); emit(r);
+  later(r, SELL_MS * spd(r), () => bidTimeout(r)); emit(r); botPlan(r, prev);
 }
 function bidTimeout(r) { if (!r.bid.who) setBid(r, r.bidders[0], FEE, true); else sell(r); }
 
@@ -319,6 +324,13 @@ function promoteSpecs(r) { // yeni oyun başlarken izleyiciler (yer varsa) oyunc
   }
   r.specs = keep;
 }
+function reshuffleAv(r) { // "rastgele yüz" seçeneği açık oyuncular her yeni oyunda yeni bir yüz alır (ilk 6 bot yüzü hariç, odada çakışma olmaz)
+  r.players.filter(p => p.rndAv && !p.bot).forEach(p => {
+    const used = new Set(r.players.concat(r.specs || []).filter(x => x !== p).map(x => x.av)), free = [];
+    for (let a = 6; a < NAV; a++) if (!used.has(a)) free.push(a);
+    if (free.length) p.av = free[Math.floor(Math.random() * free.length)];
+  });
+}
 function uniq(r, name) { // aynı odada aynı isimli oyuncu olmasın: "Oyuncu", "Oyuncu 2", "Oyuncu 3"...
   const has = n => r.players.concat(r.specs || []).some(p => p.name.toLowerCase() === n.toLowerCase());
   if (!has(name)) return name;
@@ -336,22 +348,22 @@ const onConn = sock => {
   const bind = (room, p) => { r = room; me = p; p.sid = sock.id; p.on = true; sock.emit('joined', { code: room.code, token: p.token }); emit(room); };
   const mk = name => ({ id: uid(), token: uid() + uid(), name: String(name || '').trim().slice(0, 14) || 'Oyuncu', money: 0, items: [], on: true, turnsLed: 0, eliminated: false });
   const newRoom = p => { let code; do { code = Array.from({ length: 4 }, () => 'ABCDEFGHJKLMNPRSTUVYZ'[Math.floor(Math.random() * 21)]).join(''); } while (rooms[code]); return rooms[code] = { code, host: p.id, players: [p], phase: 'lobby', log: [], pending: [] }; };
-  sock.on('create', ({ name, av } = {}) => { const p = mk(name), room = newRoom(p); p.av = avFree(room, av, p); bind(room, p); });
-  sock.on('solo', ({ name, bots, diff, speed, av } = {}) => { // tek tuşla botlara karşı oyun
-    const p = mk(name), room = newRoom(p); p.av = avFree(room, av, p); bind(room, p); room.diff = DIFF[diff] ? diff : 'normal'; room.speed = SP[speed] ? speed : 'normal';
+  sock.on('create', ({ name, av, rnd } = {}) => { const p = mk(name), room = newRoom(p); p.rndAv = !!rnd; p.av = avFree(room, rnd ? null : av, p); bind(room, p); });
+  sock.on('solo', ({ name, bots, diff, speed, av, rnd } = {}) => { // tek tuşla botlara karşı oyun
+    const p = mk(name), room = newRoom(p); p.rndAv = !!rnd; p.av = avFree(room, rnd ? null : av, p); bind(room, p); room.diff = DIFF[diff] ? diff : 'normal'; room.speed = SP[speed] ? speed : 'normal';
     const n = Math.max(MIN - 1, Math.min(MAX - 1, Math.floor(+bots) || 3));
     for (let i = 0; i < n; i++) addBot(room);
     startGame(room);
   });
-  sock.on('join', ({ code, name, av } = {}) => {
+  sock.on('join', ({ code, name, av, rnd } = {}) => {
     const room = rooms[String(code || '').toUpperCase().trim()];
     if (!room) return err('Oda bulunamadı');
     if (!['lobby', 'over'].includes(room.phase)) { // oyun sürüyor: izleyici olarak girer, sonraki oyunda oyuncu olur
       if ((room.specs || []).length >= 10) return err('İzleyici sınırı doldu (en fazla 10)');
-      const sp = mk(name); sp.spec = true; sp.name = uniq(room, sp.name); sp.av = avFree(room, av, sp); (room.specs = room.specs || []).push(sp); return bind(room, sp);
+      const sp = mk(name); sp.spec = true; sp.name = uniq(room, sp.name); sp.rndAv = !!rnd; sp.av = avFree(room, rnd ? null : av, sp); (room.specs = room.specs || []).push(sp); return bind(room, sp);
     }
     if (room.players.length >= MAX) return err(`Oda dolu (en fazla ${MAX} oyuncu)`);
-    const p = mk(name); p.name = uniq(room, p.name); p.av = avFree(room, av, p); room.players.push(p); bind(room, p);
+    const p = mk(name); p.name = uniq(room, p.name); p.rndAv = !!rnd; p.av = avFree(room, rnd ? null : av, p); room.players.push(p); bind(room, p);
   });
   sock.on('rejoin', ({ code, token } = {}) => {
     const room = rooms[code], p = room && token && (room.players.find(x => x.token === token) || (room.specs || []).find(x => x.token === token));
@@ -393,10 +405,14 @@ const onConn = sock => {
     if (r.players.concat(r.specs || []).some(p => p !== me && p.av === av)) return err('Bu avatar başkasında');
     me.av = av; emit(r);
   });
+  sock.on('setAvRnd', ({ on } = {}) => { // "her oyunda rastgele yüz" seçeneği (lobide / oyun arasında); yeni oyun başlarken uygulanır (`reshuffleAv`)
+    if (!r || !me || !['lobby', 'over'].includes(r.phase)) return;
+    me.rndAv = !!on; emit(r);
+  });
   sock.on('pause', ({ on } = {}) => { // duraklatma: sadece tek gerçek oyunculu (botlara karşı) odalarda
     if (!r || !me || me.spec || r.players.filter(p => !p.bot).length !== 1 || ['lobby', 'over'].includes(r.phase)) return;
     if (on && !r.paused) { r.paused = true; r.rem = Math.max(1000, (r.deadline || 0) - Date.now()); clearTimeout(r.timer); r.deadline = null; emit(r); }
-    else if (!on && r.paused) { r.paused = false; later(r, r.rem, r.fn); emit(r); }
+    else if (!on && r.paused) { r.paused = false; later(r, r.rem, r.fn); emit(r); if (r.phase === 'bid') botPlan(r, null); }
   });
   sock.on('react', ({ i } = {}) => { // hazır tepki: odadaki gerçek oyunculara iletilir (1,2 sn'de bir)
     const t = REACTS[Math.floor(+i)];
@@ -420,8 +436,14 @@ io.on('connection', onConn);
 // ---- Botlar ----
 const BOTS = [['Kurnaz Kemal', 'temkinli', 0], ['Dengeli Deniz', 'dengeli', 1], ['Gözü Kara Gül', 'gozukara', 2], ['Blöfçü Bora', 'gozukara', 3], ['Hesapçı Hale', 'temkinli', 4], ['Şanslı Selim', 'dengeli', 5]]; // [ad, kişilik, avatar sırası (avatars/01..06.webp)]
 const MARG = { temkinli: 0.55, dengeli: 0.85, gozukara: 1.15 }; // tahmin edilen değerin kaçına kadar teklif verir
-// Zorluk: m = teklif çarpanı, n = tahmin hatası (büyüdükçe bot daha şaşırtıcı), act = bot her saniye hamle yapma olasılığı (reflekslerini belirler)
-const DIFF = { kolay: { m: 0.85, n: 0.7, act: 0.35 }, normal: { m: 1, n: 0.3, act: 0.6 }, zor: { m: 1.1, n: 0.1, act: 0.85 } };
+// Zorluk: m = teklif çarpanı, n = tahmin hatası (büyüdükçe bot daha şaşırtıcı), act = bot her saniye hamle yapma olasılığı (reflekslerini belirler; teklif dışı hamleler), sn = son saniyede araya girme çarpanı, rs = tepki süresi çarpanı (küçük = daha çabuk)
+const DIFF = { kolay: { m: 0.85, n: 0.7, act: 0.35, sn: 0.5, rs: 1.25 }, normal: { m: 1, n: 0.3, act: 0.6, sn: 1, rs: 1 }, zor: { m: 1.1, n: 0.1, act: 0.85, sn: 1.4, rs: 0.85 } };
+// Teklif davranışı (kişiliğe göre; süreler saniye, normal hızda): open = açılış teklifini ne zaman verir, react = yeni bir teklife ne zaman karşılık verir, snipe = son saniyelerde araya girme olasılığı (bekleyip son anda teklif), bluff = o mezatta tahmin ettiği değerin ~%20 üstüne çıkma ve büyük sıçrama yapma olasılığı
+const BEH = {
+  temkinli: { open: [3, 9], react: [2.5, 5.5], snipe: 0.5, bluff: 0.04 },
+  dengeli: { open: [2, 7], react: [1.6, 4.5], snipe: 0.3, bluff: 0.08 },
+  gozukara: { open: [1.2, 4.5], react: [1.2, 3.5], snipe: 0.15, bluff: 0.18 },
+};
 // Bot tepkileri (kişiliğe göre): hot = teklif ısınınca, win = bot kazanınca, good = biri kazançlı çıkınca, junk = biri hurda alınca, wreck = Tahribat
 const LINES = {
   hot: { temkinli: ['Bu fiyat çok yüksek!', 'Blöf mü?'], dengeli: ['💸', 'Hmm, ısınıyoruz!'], gozukara: ['Ben varım! 🔥', 'Daha yükseği var mı?'] },
@@ -436,6 +458,38 @@ function botSay(r, kind, only) { // rastgele bir bot (5 sn'de bir, %55 olasılı
   setTimeout(() => r.players.forEach(p => { if (p.on && p.sid && !p.bot) io.to(p.sid).emit('react', { id: b.id, name: b.name, av: b.av, t }); }), 800 + Math.random() * 1200);
 }
 const AVG = ITEMS.reduce((s, c) => s + c.value, 0) / ITEMS.length, WRECKS = ITEMS.filter(c => c.effect === 'wreck').length;
+function botCap(r, p, v) { // botun bu depo için tahmini en yüksek teklifi (gördüğü kartlar + bilinmeyenlerin ortalaması, kişiliği, zorluğu); mezat başına bir kez blöf kararı verir
+  const D = DIFF[r.diff] || DIFF.normal;
+  if (p.noiseTurn !== r.turn) { p.noiseTurn = r.turn; p.noise = 1 + (Math.random() - 0.5) * D.n; p.bluff = Math.random() < (BEH[p.style] || BEH.dengeli).bluff; }
+  let known = 0, k = 0, wreck = false;
+  v.lot.forEach(l => { if (!l.card) k++; else if (l.card.effect === 'wreck') wreck = true; else known += l.card.value; });
+  const safe = Math.pow(1 - WRECKS / ITEMS.length, k); // bilinmeyen kartlarda Tahribat çıkmama ihtimali
+  return Math.min(wreck ? 0 : Math.round(safe * (known + k * AVG) * MARG[p.style] * D.m * p.noise / 100) * 100, worth(p));
+}
+function botPlan(r, prev) { // botların bu teklife ne zaman karşılık vereceğini planlar: anında değil; düşünme payı, bazen son saniyelerde araya girme (snipe)
+  if (r.phase !== 'bid' || !r.bid || r.paused) return;
+  const b = r.bid, stamp = b.n, k = T * spd(r) * 1000, left = Math.max(0, (r.deadline || 0) - Date.now()), D = DIFF[r.diff] || DIFF.normal;
+  r.players.filter(p => p.bot && !p.eliminated && r.bidders.includes(p.id) && b.who !== p.id).forEach(p => {
+    const B = BEH[p.style] || BEH.dengeli, hot = p.id === prev, rnd = ([lo, hi]) => (lo + Math.random() * (hi - lo)) * k; // hot: az önce geçilen bot daha çabuk karşılık verir
+    let d;
+    if (!b.who) d = rnd(B.open) * D.rs; // açılış: kimi çabuk, kimi bekler
+    else if (Math.random() < Math.min(0.85, B.snipe * D.sn * (hot ? 0.6 : 1))) d = left - (0.8 + Math.random() * 2.4) * k; // son 0,8–3,2 sn'de araya girer
+    else d = rnd(B.react) * D.rs * (hot ? 0.7 : 1);
+    setTimeout(() => botBid(r, p, stamp), Math.max(d, 0.8 * k));
+  });
+}
+function botBid(r, p, stamp) { // planlanan zamanda bot teklif verir (teklif / aşama değişmişse vazgeçer)
+  const b = r.bid;
+  if (r.phase !== 'bid' || r.paused || !b || b.n !== stamp || p.eliminated || b.who === p.id || !r.bidders.includes(p.id)) return;
+  try {
+    const cap = botCap(r, p, view(r, p)), limit = p.bluff ? Math.min(worth(p), Math.round(cap * 1.2 / 100) * 100) : cap; // blöf: tahmin ettiği değerin %20 üstüne kadar çıkabilir (kimse geçmezse fazla öder)
+    const step = Math.max(100, Math.round(limit / 8 * (0.5 + Math.random()) / 100) * 100);
+    let amt = b.who ? b.amt + step : 100 * (1 + Math.floor(Math.random() * 3));
+    if (p.bluff && b.who && limit - b.amt >= 600 && Math.random() < 0.5) amt = b.amt + Math.round((limit - b.amt) * (0.35 + Math.random() * 0.3) / 100) * 100; // blöf: rakipleri korkutan büyük sıçrama
+    amt = Math.min(amt, limit);
+    if (amt > b.amt) A.bid(r, p, { amt });
+  } catch (e) { console.error('botBid', e); }
+}
 function botAct(r, p, idle) { // idle: süresi dolan/çevrimdışı gerçek oyuncu için güvenli varsayılan hamle
   const v = view(r, p), id = p.id;
   const closed = v.lot.map((l, i) => l.up ? -1 : i).filter(i => i >= 0), pick = () => closed[Math.floor(Math.random() * closed.length)];
@@ -444,23 +498,13 @@ function botAct(r, p, idle) { // idle: süresi dolan/çevrimdışı gerçek oyun
   if (v.phase === 'shield' && v.shield) return A.shield(r, p, { use: v.shield.max });
   if (v.phase === 'pay' && v.pay.who === id) return A.pay(r, p, { ids: autoPick(p, v.pay.short) });
   if (idle) return v.phase === 'join' && v.cur === id ? A.joinAuction(r, p, { yes: false }) : undefined;
-  const D = DIFF[r.diff] || DIFF.normal;
-  if (p.noiseTurn !== r.turn) { p.noiseTurn = r.turn; p.noise = 1 + (Math.random() - 0.5) * D.n; }
-  let known = 0, k = 0, wreck = false;
-  v.lot.forEach(l => { if (!l.card) k++; else if (l.card.effect === 'wreck') wreck = true; else known += l.card.value; });
-  const safe = Math.pow(1 - WRECKS / ITEMS.length, k); // bilinmeyen kartlarda Tahribat çıkmama ihtimali
-  const cap = Math.min(wreck ? 0 : Math.round(safe * (known + k * AVG) * MARG[p.style] * D.m * p.noise / 100) * 100, worth(p));
-  if (v.phase === 'join' && v.cur === id) return A.joinAuction(r, p, { yes: cap >= 300 && p.money >= FEE });
-  if (v.phase === 'bid' && v.bidders.includes(id) && v.bid.who !== id) {
-    const step = Math.max(100, Math.round(cap / 8 * (0.5 + Math.random()) / 100) * 100);
-    const amt = Math.min(v.bid.amt ? v.bid.amt + step : 100 * (1 + Math.floor(Math.random() * 3)), cap);
-    if (amt > v.bid.amt) A.bid(r, p, { amt });
-  }
+  if (v.phase === 'join' && v.cur === id) { const cap = botCap(r, p, v); return A.joinAuction(r, p, { yes: cap >= 300 && p.money >= FEE }); }
+  // teklifler burada değil, `botPlan` / `botBid` ile planlanan zamanda verilir (anlık tepki yok)
 }
 setInterval(() => Object.values(rooms).forEach(r => {
   if (!r.players.some(p => !p.bot && p.on)) { r.idle = r.idle || Date.now(); if (Date.now() - r.idle > 600000) { clear(r); delete rooms[r.code]; } return; } // 10 dk boş kalan oda silinir
   r.idle = 0;
-  if (!['prep', 'peekBefore', 'peekAfter', 'join', 'bid', 'shield', 'pay'].includes(r.phase) || Date.now() < (r.hold || 0) || r.paused) return;
+  if (!['prep', 'peekBefore', 'peekAfter', 'join', 'shield', 'pay'].includes(r.phase) || Date.now() < (r.hold || 0) || r.paused) return;
   r.players.filter(p => p.bot && !p.eliminated).forEach(p => { if (Math.random() < (DIFF[r.diff] || DIFF.normal).act) try { botAct(r, p); } catch (e) { console.error('bot', e); } });
 }), 1000 * T);
 

@@ -158,10 +158,16 @@ async function main() {
   a.sock.emit('react', { i: 1 }); await wait(200);
   check(b.reacts.length === 1, 'arka arkaya tepki sınırlandı');
   a.sock.emit('react', { i: 999 }); a.sock.emit('react', {}); await wait(100);
+  const dur = await (await fetch(`${URL}/durum`)).json();
+  check(Object.keys(dur).sort().join() === 'playing,players,rooms,safe' && dur.rooms >= 1 && dur.players >= 2 && dur.safe === false && !JSON.stringify(dur).includes(a.code), `/durum yalnızca sayılar veriyor (${dur.rooms} oda, ${dur.players} çevrimiçi), oda kodu yok, aktif oda varken safe=false`);
+  b.sock.emit('setAvRnd', { on: true }); await wait(150);
+  check(b.s.me.rnd === true && a.s.me.rnd === false, 'rastgele yüz seçeneği sadece açan oyuncuda açık');
+  const aAv0 = a.s.players.find(p => p.id === a.s.me.id).av, bAv0 = meB().av;
   a.auto = b.auto = true;
   a.sock.emit('start');
   const s1 = await until(a, s => s.phase === 'over', 90000, 'online oyun bitişi');
   checkFinal(s1, 3, 'online');
+  check(meB().av >= 6 && meB().av !== bAv0 && a.s.players.find(p => p.id === a.s.me.id).av === aAv0 && new Set(a.s.players.map(p => p.av)).size === 3, 'rastgele yüz: B yeni oyunda yeni bir yüz aldı (ilk 6 hariç), A\'nın avatarı sabit kaldı, çakışma yok');
   const gid = s1.gid;
   check(s1.series === null, 'ilk oyundan sonra seri skoru gösterilmiyor (tek oyun)');
   a.sock.emit('start');

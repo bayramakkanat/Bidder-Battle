@@ -198,8 +198,6 @@ label.l{display:block;font-size:12px;color:var(--mu);margin:10px 0 4px;text-tran
 .hc.new{animation:pop .7s cubic-bezier(.2,1.4,.3,1)}
 @keyframes pop{0%{transform:translateY(-60px) scale(.4) rotate(-15deg);opacity:0}100%{transform:none;opacity:1}}
 .empty{color:var(--mu);padding:14px;text-align:center;width:100%}
-#logz details{background:#0d162699;border-radius:12px;padding:8px 12px}#logz summary{cursor:pointer;font-weight:700;color:var(--mu)}
-#logz div{font-size:13px;color:#b5bfd4;margin:3px 0}
 #zoom,#sheet,#rules,#rx,#pause{position:fixed;inset:0;background:#000c;display:none;place-items:center;z-index:50;padding:14px}
 #zoom.on,#sheet.on,#rules.on,#rx.on,#pause.on{display:grid}
 #pause{background:#0b1220f2;z-index:52}
@@ -226,8 +224,8 @@ label.l{display:block;font-size:12px;color:var(--mu);margin:10px 0 4px;text-tran
 #net{position:fixed;top:0;left:0;right:0;padding:calc(env(safe-area-inset-top) + 8px) 12px 8px;text-align:center;font-weight:700;background:var(--rd);color:#fff;display:none;z-index:70;box-shadow:0 4px 14px #0008}#net.ok{background:var(--gr);color:#04210f}
 @keyframes bob{50%{transform:rotate(-4deg) translateY(-5px)}}
 @media(min-width:900px){
- #game{max-width:1120px;display:grid;grid-template-columns:minmax(0,1fr) 380px;grid-template-areas:"hud hud" "stage act" "stage info" "hand info";grid-template-rows:auto auto auto 1fr;gap:12px}
- #hud{grid-area:hud}#stage{grid-area:stage;padding:18px}#act{grid-area:act}#info{grid-area:info;display:flex;flex-direction:column;gap:10px}#hand{grid-area:hand}
+ #game{max-width:1120px;display:grid;grid-template-columns:minmax(0,1fr) 380px;grid-template-areas:"hud hud" "stage act" "stage seats" "stage hand";grid-template-rows:auto auto auto 1fr;gap:12px}
+ #hud{grid-area:hud}#stage{grid-area:stage;padding:18px}#act{grid-area:act}#info{display:contents}#seats{grid-area:seats}#hand{grid-area:hand;align-self:start}
  .lot{--w:min(150px,calc((100% - (var(--n) - 1)*10px)/var(--n)))}.stor{width:190px}.pile{width:84px}.portrait{width:74px}.bubble{font-size:16px}.hc{width:92px}
 }
 @media(min-width:1600px){ /* geniş monitör: masa ve oyun sonu ekranı biraz büyür */
@@ -235,6 +233,10 @@ label.l{display:block;font-size:12px;color:var(--mu);margin:10px 0 4px;text-tran
  .lot{--w:min(176px,calc((100% - (var(--n) - 1)*12px)/var(--n)))}.stor{width:230px}.pile{width:100px}.portrait{width:88px}.bubble{font-size:18px}.hc{width:104px}
  #menu.wide{max-width:1280px}.over{grid-template-columns:400px minmax(0,1fr)}
 }
+/* İlk kez oynayanlar için ipucu kartı (altta, oyunu engellemez) */
+#tour{position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom) + 12px);transform:translateX(-50%);width:min(440px,calc(100% - 20px));z-index:48;background:linear-gradient(var(--pn2),var(--pn));border:2px solid var(--am);border-radius:16px;padding:12px 14px;box-shadow:0 10px 30px #000c}
+#tour small{display:block;letter-spacing:.12em}#tour b.t{display:block;font:400 22px Impact,sans-serif;letter-spacing:.04em;text-transform:uppercase;color:var(--am)}
+#tour p{margin:4px 0 10px;color:#cdd6ea;font-size:14px}#tour .tr{display:flex;align-items:center;gap:8px}#tour button{padding:8px 16px}#tour button.link{padding:8px}
 @media(prefers-reduced-motion:reduce){*{animation:none!important}}
 </style>
 </head>
@@ -254,11 +256,12 @@ label.l{display:block;font-size:12px;color:var(--mu);margin:10px 0 4px;text-tran
   </div>
   <div id="act"><div id="pA"></div><div id="pB"></div><div id="pH"></div></div>
   <div id="hand"></div>
-  <div id="info"><div id="seats"></div><div id="logz"></div></div>
+  <div id="info"><div id="seats"></div></div>
 </div>
 <div id="zoom" onclick="if(!event.target.closest('.zn')&&Date.now()-zSw>400)zoomClose()"><button class="alt zn zp" onclick="zoomStep(-1)" aria-label="Önceki" hidden>‹</button><img alt=""><button class="alt zn znx" onclick="zoomStep(1)" aria-label="Sonraki" hidden>›</button><div class="zct" hidden></div></div>
 <div id="sheet" onclick="if(event.target===this)sheet(0)"><div class="sheetbox"><h2>Menü</h2><div class="plist">
   <button class="alt" onclick="sheet(0);rules(1)">📖 Nasıl oynanır?</button>
+  <button class="alt" onclick="sheet(0);tourStart()">💡 İpuçlarını göster</button>
   <button class="alt" onclick="sheet(0);catalog(1)">🃏 Kartlar</button>
   <button class="alt" onclick="sheet(0);toggleFs()">⛶ Tam ekran</button>
   <button class="alt" id="sndBtn" onclick="toggleSound()"></button>
@@ -281,6 +284,7 @@ label.l{display:block;font-size:12px;color:var(--mu);margin:10px 0 4px;text-tran
 <div id="reacts"></div>
 <div id="pause"><div class="sheetbox center"><h2>⏸ Duraklatıldı</h2><p>Oyun beklemede, süre işlemiyor.</p><button class="cta" onclick="go('pause',{on:false})">▶ Devam et</button></div></div>
 <div id="net"></div>
+<div id="tour" hidden></div>
 <div id="toast"></div>
 <script src="/socket.io/socket.io.js"></script>
 <script>
@@ -289,7 +293,7 @@ const esc = t => String(t).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;',
 const fmt = n => (n < 0 ? '-' : '') + Math.abs(n).toLocaleString('tr-TR') + '$';
 const go = (ev, d) => { if (!sock.connected) return toast('Bağlantı yok, yeniden bağlanılıyor…'); sock.emit(ev, d || {}); };
 const cardUrl = c => `cards/${c.img}.jpg`;
-let S = null, prevS = null, off = 0, nameDraft = localStorage.getItem('bbName') || '', mode = 'solo', nBots = 3, diffDraft = 'normal', speedDraft = 'normal', logOpen = false;
+let S = null, prevS = null, off = 0, nameDraft = localStorage.getItem('bbName') || '', mode = 'solo', nBots = 3, diffDraft = 'normal', speedDraft = 'normal';
 const q0 = new URLSearchParams(location.search).get('oda') || '';
 let codeDraft = q0.toUpperCase(); if (q0) mode = 'online';
 const sv = JSON.parse(localStorage.getItem('bb') || '{}');
@@ -300,8 +304,12 @@ const avIdx = x => (Number.isInteger(x) ? x : 0) % AV.length, avSrc = i => `avat
 const avFace = i => AVF.has(i) ? `<img src="${avSrc(i)}" alt="" onerror="this.replaceWith('${AV[i][0]}')">` : AV[i][0];
 const avHTML = (p, cls = '') => `<div class="av ${cls}${p.bot ? ' bot' : ''}" style="--ac:${avCol(p.av)}">${avFace(avIdx(p.av))}</div>`;
 let avDraft = (x => x !== null && x !== '' && +x >= 0 && +x < AV.length ? Math.floor(+x) : 6 + Math.floor(Math.random() * (AV.length - 6)))(localStorage.getItem('bbAv')); // ilk kez: rastgele (ilk 6 = bot karakterleri hariç)
-const avPicker = (cur, taken) => `<div class="avp${AVF.size ? ' img' : ''}">${AV.map((a, i) => `<button class="avb${i === cur ? ' on' : ''}" style="--ac:${avCol(i)}" ${taken.has(i) ? 'disabled' : ''} onclick="pickAv(${i})" aria-label="Avatar ${i + 1}">${avFace(i)}</button>`).join('')}</div>`;
-const pickAv = i => { avDraft = i; localStorage.setItem('bbAv', String(i)); if (S) go('setAv', { av: i }); else { zc.menu = null; render(); } };
+const avPicker = (cur, taken) => `<div class="avp${AVF.size ? ' img' : ''}">${AV.map((a, i) => `<button class="avb${i === cur ? ' on' : ''}" style="--ac:${avCol(i)}" ${taken.has(i) ? 'disabled' : ''} onclick="pickAv(${i})" aria-label="Avatar ${i + 1}">${avFace(i)}</button>`).join('')}</div><button class="pill${avRndOn() ? ' on' : ''}" style="width:100%;margin:2px 0 4px" onclick="toggleAvRnd()">🎲 Her oyunda rastgele yüz</button>`;
+let avRnd = localStorage.getItem('bbAvRnd') === '1'; // "her oyunda rastgele yüz" (ilk 6 bot yüzü hariç); lobide sunucudaki değer geçerli (S.me.rnd)
+const avRndOn = () => S ? !!S.me.rnd : avRnd;
+const setAvRnd = on => { avRnd = on; localStorage.setItem('bbAvRnd', on ? '1' : '0'); if (S) go('setAvRnd', { on }); else { zc.menu = null; render(); } };
+const toggleAvRnd = () => setAvRnd(!avRndOn());
+const pickAv = i => { avDraft = i; localStorage.setItem('bbAv', String(i)); if (avRndOn()) { avRnd = false; localStorage.setItem('bbAvRnd', '0'); if (S) go('setAvRnd', { on: false }); } if (S) go('setAv', { av: i }); else { zc.menu = null; render(); } }; // elle yüz seçmek rastgele modu kapatır
 
 /* ---------- Ses efektleri (WebAudio, dosya gerekmez) ---------- */
 const sfx = (() => {
@@ -437,8 +445,31 @@ function autoPickC(items, need) { // para üstü verilmediğinden en az fazlalı
   return best ? best.ids : [];
 }
 
+/* ---------- İlk kez oynayanlar için ipuçları (bir kez gösterilir; ☰ menüsünden baştan açılır) ---------- */
+const TOUR = [['🔨 Depoyu mezatla kap', 'Mezatçı bir depo çeker; eşyalar kapalı dağıtılır. İçinden hazine de çıkar, hurda da.'], ['👁 Gizlice bak', 'Depo kartının altındaki etiketler, kimin hangi eşyaya gizlice bakabileceğini söyler. Parlayan karta dokun.'], ['💰 Katıl ve teklif ver', 'Mezata girmek 100$. Teklifler 100$\'ın katı; süre dolunca en yüksek teklif kazanır. Paran yetmezse eşyalarını teminat gösterebilirsin.'], ['🗑️ Hurdaya dikkat', 'Hurda eşyaların değeri eksidir! Oyun sonunda para + eşya değeri en yüksek olan kazanır.']];
+let tour = null;
+const tourSeen = () => { try { return localStorage.getItem('bbTour') === '1'; } catch (e) { return true; } };
+function tourDraw() {
+  const h = tour !== null && S && !['lobby', 'over'].includes(S.phase) ? `<small>İPUCU ${tour + 1} / ${TOUR.length}</small><b class="t">${TOUR[tour][0]}</b><p>${TOUR[tour][1]}</p><div class="tr"><button class="link" onclick="tourEnd()">Atla</button><button style="margin-left:auto" onclick="tourNext()">${tour + 1 < TOUR.length ? 'Sonraki ›' : 'Anladım'}</button></div>` : '';
+  zone('tour', h); $('#tour').hidden = !h;
+}
+const tourStart = () => { tour = 0; tourDraw(); };
+const tourEnd = () => { tour = null; try { localStorage.setItem('bbTour', '1'); } catch (e) {} tourDraw(); };
+const tourNext = () => tour + 1 < TOUR.length ? (tour++, tourDraw()) : tourEnd();
+/* ---------- Kişisel istatistikler (sadece bu tarayıcıda; sunucuya gönderilmez) ---------- */
+const myStats = () => { try { return JSON.parse(localStorage.getItem('bbStats')) || null; } catch (e) { return null; } };
+function recStats() { // oyun sonunda bir kez: oda kodu + oyun no ile aynı oyun iki kez sayılmaz (sayfa yenilense de)
+  if (!S || !S.final || S.me.spec) return;
+  const key = S.code + ':' + S.gid, t = myStats() || { games: 0, wins: 0, best: 0 }; if (t.last === key) return;
+  const f = S.final, mine = f.find(p => p.id === S.me.id); if (!mine) return;
+  const top = f.length && !f[0].out ? f[0].total : null; // beraberlikte zirvedekilerin hepsi galibiyet yazar (seri skoru gibi)
+  t.games++; if (!mine.out && top !== null && mine.total === top) t.wins++; if (mine.total > t.best) t.best = mine.total; t.last = key;
+  try { localStorage.setItem('bbStats', JSON.stringify(t)); } catch (e) {}
+}
+const statsLine = () => { const t = myStats(); return t && t.games ? `<div style="margin-bottom:6px"><small>📊 ${t.games} oyun · ${t.wins} galibiyet · en yüksek ${fmt(t.best)}</small> <button class="link" style="padding:4px;font-size:12px" onclick="resetStats()">sıfırla</button></div>` : ''; };
+const resetStats = () => { if (confirm('Kişisel istatistikler silinsin mi?')) { localStorage.removeItem('bbStats'); zc.menu = null; render(); } };
 /* ---------- Menü ekranları ---------- */
-const startSolo = () => { localStorage.removeItem('bb'); go('solo', { name: nameDraft, bots: nBots, diff: diffDraft, speed: speedDraft, av: avDraft }); };
+const startSolo = () => { localStorage.removeItem('bb'); go('solo', { name: nameDraft, bots: nBots, diff: diffDraft, speed: speedDraft, av: avDraft, rnd: avRnd }); };
 const DIFFS = [['kolay', '😊 Kolay'], ['normal', '🙂 Normal'], ['zor', '😈 Zor']];
 const diffPills = (cur, fn) => `<div class="pills">${DIFFS.map(([k, t]) => `<button class="pill ${k === cur ? 'on' : ''}" onclick="${fn}('${k}')">${t}</button>`).join('')}</div>`;
 const setDiffDraft = d => { diffDraft = d; zc.menu = null; render(); };
@@ -484,8 +515,8 @@ function menuHTML() {
   <div class="panel h-who"><label class="l">Oyuncu adı</label><input maxlength="14" placeholder="Adın" value="${esc(nameDraft)}" oninput="nameDraft=this.value;localStorage.setItem('bbName',this.value)"><label class="l">Avatar</label>${avPicker(avDraft, new Set())}</div>
   <div class="panel h-mode"><div class="tabs"><button class="tab ${mode === 'solo' ? 'on' : ''}" onclick="setMode('solo')">🤖 Botlara karşı</button><button class="tab ${mode === 'online' ? 'on' : ''}" onclick="setMode('online')">🌐 Online</button></div>
   ${mode === 'solo' ? `<label class="l">Rakip sayısı</label><div class="pills">${[2, 3, 4, 5, 6].map(n => `<button class="pill ${n === nBots ? 'on' : ''}" onclick="setBots(${n})">${n}</button>`).join('')}</div><label class="l">Bot zorluğu</label>${diffPills(diffDraft, 'setDiffDraft')}<label class="l">Oyun hızı (süreler)</label>${speedPills(speedDraft, 'setSpeedDraft')}<button class="cta" onclick="startSolo()">🔨 Oyuna başla</button>`
-    : `<button class="cta" onclick="go('create',{name:nameDraft,av:avDraft})">➕ Yeni oda kur</button><div class="or">— veya arkadaşının kodunu gir —</div><input placeholder="ODA KODU" maxlength="4" value="${esc(codeDraft)}" style="text-transform:uppercase;text-align:center;letter-spacing:.3em;font-weight:800" oninput="codeDraft=this.value"><div class="row"><button class="alt" onclick="go('join',{name:nameDraft,code:codeDraft,av:avDraft})">Odaya katıl</button></div>`}
-  </div><div class="center h-links"><button class="link" onclick="rules(1)">📖 Nasıl oynanır?</button><button class="link" onclick="catalog(1)">🃏 Kartlar</button><button class="link" onclick="toggleFs()">⛶ Tam ekran</button></div></div>`;
+    : `<button class="cta" onclick="go('create',{name:nameDraft,av:avDraft,rnd:avRnd})">➕ Yeni oda kur</button><div class="or">— veya arkadaşının kodunu gir —</div><input placeholder="ODA KODU" maxlength="4" value="${esc(codeDraft)}" style="text-transform:uppercase;text-align:center;letter-spacing:.3em;font-weight:800" oninput="codeDraft=this.value"><div class="row"><button class="alt" onclick="go('join',{name:nameDraft,code:codeDraft,av:avDraft,rnd:avRnd})">Odaya katıl</button></div>`}
+  </div><div class="center h-links">${statsLine()}<button class="link" onclick="rules(1)">📖 Nasıl oynanır?</button><button class="link" onclick="catalog(1)">🃏 Kartlar</button><button class="link" onclick="toggleFs()">⛶ Tam ekran</button></div></div>`;
   if (s.phase === 'lobby') {
     const host = s.host === s.me.id, meP = s.players.find(p => p.id === s.me.id);
     return `<div class="lob"><div class="logo lob-head"><h1 style="font-size:34px">Oda <span>hazır</span></h1></div><div class="lob-l"><div class="panel"><small>ODA KODU</small><div class="code">${s.code}</div><button class="alt cta" onclick="copyLink()">🔗 Davet bağlantısını kopyala</button></div><div class="panel"><small>AVATARIN</small>${avPicker(meP ? meP.av : avDraft, new Set(s.players.filter(p => p.id !== s.me.id).map(p => p.av)))}</div></div><div class="lob-r">
@@ -647,20 +678,21 @@ function renderGame() {
   $('#pause').classList.toggle('on', !!s.paused);
   renderHand();
   zone('seats', seatsHTML());
-  zone('logz', `<details ${logOpen ? 'open' : ''} ontoggle="logOpen=this.open"><summary>📜 Oyun günlüğü</summary>${s.log.map(l => `<div>${esc(l)}</div>`).join('')}</details>`);
   // sesler ve titreşim
   if (prevS && prevS.gid === s.gid) {
     if (s.phase === 'bid' && prevS.bid && s.bid && s.bid.amt > prevS.bid.amt) sfx.tick();
     if (p.act && !(prevS.phase === s.phase && prevS.turn === s.turn && prevS.cur === s.cur)) { try { vib && navigator.vibrate && navigator.vibrate(40); } catch (e) {} }
   }
+  if (tour === null && !tourSeen()) tourStart(); else tourDraw();
   tick();
 }
 function render() {
   const inGame = S && !['lobby', 'over'].includes(S.phase);
   $('#game').hidden = !inGame; $('#menu').hidden = inGame; $('#menu').classList.toggle('wide', !S || ['lobby', 'over'].includes(S.phase)); if (!inGame) $('#pause').classList.remove('on');
   if (inGame) { openRk.clear(); return renderGame(); }
-  lotKey = resKey = null; handIds = null; hold = new Set(); zc.hand = zc.hud = zc.pA = zc.pB = zc.pH = zc.seats = zc.logz = null;
+  lotKey = resKey = null; handIds = null; hold = new Set(); zc.hand = zc.hud = zc.pA = zc.pB = zc.pH = zc.seats = null; tour = null; tourDraw();
   if (S && S.phase === 'over' && (!prevS || prevS.phase !== 'over')) sfx.win();
+  if (S && S.phase === 'over') recStats();
   zone('menu', menuHTML());
   if (S && S.phase === 'over' && cuGid !== S.gid) { cuGid = S.gid; countUp(); }
 }
