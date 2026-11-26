@@ -225,13 +225,20 @@ label.l{display:block;font-size:12px;color:var(--mu);margin:10px 0 4px;text-tran
 #net{position:fixed;top:0;left:0;right:0;padding:calc(env(safe-area-inset-top) + 8px) 12px 8px;text-align:center;font-weight:700;background:var(--rd);color:#fff;display:none;z-index:70;box-shadow:0 4px 14px #0008}#net.ok{background:var(--gr);color:#04210f}
 @keyframes bob{50%{transform:rotate(-4deg) translateY(-5px)}}
 @media(min-width:900px){
- #game{max-width:1120px;display:grid;grid-template-columns:minmax(0,1fr) 380px;grid-template-areas:"hud hud" "stage act" "stage seats" "stage hand";grid-template-rows:auto auto auto 1fr;gap:12px}
- #hud{grid-area:hud}#stage{grid-area:stage;padding:18px}#act{grid-area:act}#info{display:contents}#seats{grid-area:seats}#hand{grid-area:hand;align-self:start}
- .lot{--w:min(150px,calc((100% - (var(--n) - 1)*10px)/var(--n)))}.stor{width:190px}.pile{width:84px}.portrait{width:74px}.bubble{font-size:16px}.hc{width:92px}.hmore{width:92px}
+ #game{max-width:1900px;display:grid;grid-template-columns:minmax(0,1fr) 380px;grid-template-areas:"hud hud" "stage act" "stage seats" "stage hand";grid-template-rows:auto auto auto minmax(170px,1fr);gap:12px}
+ #hud{grid-area:hud}#stage{grid-area:stage;padding:18px;display:flex;flex-direction:column;justify-content:space-evenly}#act{grid-area:act}#info{display:contents}#seats{grid-area:seats}
+ #hand{grid-area:hand;display:flex;min-height:0}#hand .panel{flex:1;display:flex;flex-direction:column;min-height:0;margin:0} /* Eşyalarım sağ sütunda kalan yüksekliği doldurur; kartlar satırlara dizilir, sığmayanlar "+N" olur */
+ .hf{flex:1 1 0px;min-height:0;flex-wrap:wrap;align-content:flex-start;align-items:flex-start;gap:8px;padding:12px 10px 8px}.hf .empty{margin:auto}
+ .hc,.hmore{width:calc((100% - 24px)/4);margin:0}
+ .lot{--w:min(150px,calc((100% - (var(--n) - 1)*10px)/var(--n)))}.stor{width:190px}.pile{width:84px}.portrait{width:74px}.bubble{font-size:16px}
 }
-@media(min-width:1600px){ /* geniş monitör: masa ve oyun sonu ekranı biraz büyür */
- #game{max-width:1360px;grid-template-columns:minmax(0,1fr) 440px}
- .lot{--w:min(176px,calc((100% - (var(--n) - 1)*12px)/var(--n)))}.stor{width:230px}.pile{width:100px}.portrait{width:88px}.bubble{font-size:18px}.hc{width:104px}.hmore{width:104px}
+@media(min-width:900px){ /* JS `fitUI` oyun ekranını pencereye göre ölçeklendirir; "yerel" genişlik 1500px ve üzeriyse .xl: daha büyük kartlar ve geniş sağ sütun */
+ #game.xl{grid-template-columns:minmax(0,1fr) 440px}
+ #game.xl .lot{--w:min(188px,calc((100% - (var(--n) - 1)*12px)/var(--n)))}#game.xl .stor{width:240px}#game.xl .pile{width:104px}#game.xl .portrait{width:92px}#game.xl .bubble{font-size:18px}
+}
+@media(min-width:1600px){ /* geniş monitör: menü ve oyun sonu ekranı */
+
+
  #menu.wide{max-width:1280px}.over{grid-template-columns:400px minmax(0,1fr)}
 }
 /* İlk kez oynayanlar için ipucu kartı (altta, oyunu engellemez) */
@@ -282,7 +289,7 @@ label.l{display:block;font-size:12px;color:var(--mu);margin:10px 0 4px;text-tran
 <li><b>Tur:</b> Mezatçı bir <b>Depo</b> çeker; depodaki eşyalar kapalı dağıtılır. Depoda "Aç: Evet" yazıyorsa bir eşya herkese açılır. Mezatçı gizlice bir eşyaya bakar.</li>
 <li><b>Katılım:</b> Mezata girmek için mezatçıya 100$ ödenir. Depo kartındaki "Gizlice bak" kuralına göre oyuncular bir eşyaya gizlice bakabilir.</li>
 <li><b>Teklif:</b> 100$'ın katları. Kimse teklif vermezse ilk oyuncu 100$ ile açar. Süre dolunca "SATILDI!"</li>
-<li><b>Ödeme:</b> Paran yetmezse eşyalarını <b>teminat</b> gösterebilirsin (para üstü verilmez). Yetmezse 1.000$ ceza ödersin ve mezat sensiz yeniden başlar; cezayı da ödeyemezsen elenirsin.</li>
+<li><b>Ödeme:</b> Paran yetmezse eşyalarını <b>teminat</b> gösterebilirsin (para üstü verilmez). Yetmezse 1.000$ ceza ödersin ve mezat sensiz yeniden başlar; cezayı da ödeyemezsen elenirsin. Teminat sadece elindeki eşyalardan olur; kazandığın depo ödeme yapılmadan senin sayılmaz.</li>
 <li><b>Eşyalar:</b> Hurda eşyaların değeri <b>eksidir</b>! Değerli ve koleksiyon eşyaları servet kazandırır.</li>
 <li><b>Olaylar:</b> <b>Tahribat</b> depoyu ve tüm eşyaları geçersiz kılar; <b>Sahte Altın</b> en pahalı eşyayı geçersiz kılar; <b>Güvenlik Ağı</b> bir Olay kartını iptal eder.</li>
 </ul><button class="cta" onclick="rules(0)">Anladım</button></div></div>
@@ -481,6 +488,7 @@ sock.on('forget', d => { // oda artık yok (sunucu yeniden başlamış / oda kap
   toast(d && d.room ? 'Odadaki yerin artık yok. Ana menüye döndün.' : (inRoom ? '📡 Oda artık yok (sunucu yeniden başlamış olabilir). Ana menüye döndün.' : 'Son odan artık yok.'), 6000);
 });
 sock.on('err', m => { toast(m); sfx.bad(); });
+sock.on('note', m => { toast(m, 7000); sfx.bad(); }); // sunucudan önemli bildirim (ödeyemeyen oyuncuya ceza gibi)
 sock.on('react', d => {
   const box = $('#reacts'), el = document.createElement('div'), em = [...d.t].length <= 2;
   el.className = 'rxb' + (em ? ' em' : ''); el.style.setProperty('--ac', avCol(d.av)); el.innerHTML = `<small>${Number.isInteger(d.av) ? (AVF.has(avIdx(d.av)) ? `<img class="rxa" src="${avSrc(avIdx(d.av))}" alt="">` : AV[avIdx(d.av)][0] + ' ') : ''}${esc(d.name)}</small><b>${esc(d.t)}</b>`;
@@ -595,7 +603,7 @@ let lotKey = null, resKey = null, lotMode = null, hold = new Set(), handIds = nu
 const slotHTML = i => `<div class="slot" data-i="${i}"><div class="flip"><div class="face back"><img src="cards/arka-esya.jpg" alt=""></div><div class="face front"><img class="fi" alt=""></div></div><i class="eye">👁</i></div>`;
 function fromPile(el, from, delay, dur) {
   const to = el.getBoundingClientRect(); if (!to.width || !from.width) return;
-  const dx = from.left + from.width / 2 - (to.left + to.width / 2), dy = from.top + from.height / 2 - (to.top + to.height / 2), sc = from.width / to.width;
+  const dx = (from.left + from.width / 2 - (to.left + to.width / 2)) / UI, dy = (from.top + from.height / 2 - (to.top + to.height / 2)) / UI, sc = from.width / to.width; // görünür (ölçekli) piksel farkı → yerel piksel
   el.animate([{ transform: `translate(${dx}px,${dy}px) scale(${sc}) rotate(${(Math.random() * 20 - 10).toFixed(1)}deg)`, opacity: .9 }, { transform: 'none', opacity: 1 }], { duration: dur, delay, easing: 'cubic-bezier(.2,.85,.25,1)', fill: 'backwards' });
 }
 function buildStage(anim) {
@@ -621,7 +629,7 @@ function updateSlots() {
 }
 const flyTo = (el, target, delay) => {
   const a = el.getBoundingClientRect(), b = target ? target.getBoundingClientRect() : a;
-  el.animate([{ transform: 'none', opacity: 1 }, { transform: `translate(${b.left + b.width / 2 - a.left - a.width / 2}px,${b.top + b.height / 2 - a.top - a.height / 2}px) scale(.25) rotate(${delay % 2 ? 14 : -14}deg)`, opacity: 0 }], { duration: 650, delay, easing: 'cubic-bezier(.6,0,.8,.4)', fill: 'forwards' });
+  el.animate([{ transform: 'none', opacity: 1 }, { transform: `translate(${(b.left + b.width / 2 - a.left - a.width / 2) / UI}px,${(b.top + b.height / 2 - a.top - a.height / 2) / UI}px) scale(.25) rotate(${delay % 2 ? 14 : -14}deg)`, opacity: 0 }], { duration: 650, delay, easing: 'cubic-bezier(.6,0,.8,.4)', fill: 'forwards' });
 };
 const burn = (els, base = 900) => els.forEach((el, k) => el.animate([{ filter: 'none', opacity: 1, transform: 'none' }, { filter: 'grayscale(1) brightness(.35)', opacity: 0, transform: 'scale(.85) rotate(5deg)' }], { duration: 900, delay: base + k * 120, fill: 'forwards' }));
 const drop = (els, base = 700) => els.forEach((el, k) => el.animate([{ transform: 'none', opacity: 1 }, { transform: `translateY(70px) rotate(${k % 2 ? 9 : -9}deg)`, opacity: 0 }], { duration: 600, delay: base + k * 110, fill: 'forwards' }));
@@ -677,7 +685,7 @@ function panels() {
     else res.a = W(`<div class="wait">${iAud ? 'Oyuncuların kararını bekliyorsun…' : nm(s.cur) + ' karar veriyor…'}</div>`);
   } else if (ph === 'bid') {
     const b = s.bid, mine = b.who === me.id, can = s.bidders.includes(me.id), worth = me.money + sumV(me.items.filter(c => c.value > 0));
-    res.a = W(`<div class="big">${b.who ? fmt(b.amt) : 'Teklif yok'}</div><div class="center">${b.who ? (mine ? '<b style="color:var(--gr)">En yüksek teklif sende</b>' : nm(b.who) + ' önde') : 'Açılış 100$'}</div>${TM}${can ? `<div class="qb">${[100, 500, 1000, 5000].map(d => { const a = (b.amt || 0) + d; return `<button class="${a > worth ? 'risk' : a > me.money ? 'warn' : ''}" ${mine ? 'disabled' : ''} onclick="go('bid',{amt:${a}})">${fmt(a)}<small>+${d}</small></button>`; }).join('')}</div><small style="display:block;margin-top:6px">🟠 teminat gerekir · 🔴 ödeyemezsin (1.000$ ceza)</small>` : `<div class="wait">${iAud ? 'Mezatçısın, teklif veremezsin.' : 'Bu mezata katılmadın.'}</div>`}`);
+    res.a = W(`<div class="big">${b.who ? fmt(b.amt) : 'Teklif yok'}</div><div class="center">${b.who ? (mine ? '<b style="color:var(--gr)">En yüksek teklif sende</b>' : nm(b.who) + ' önde') : 'Açılış 100$'}</div>${TM}${can ? `<div class="qb">${[100, 500, 1000, 5000].map(d => { const a = (b.amt || 0) + d; return `<button class="${a > worth ? 'risk' : a > me.money ? 'warn' : ''}" ${mine ? 'disabled' : ''} onclick="go('bid',{amt:${a}})">${fmt(a)}<small>+${d}</small></button>`; }).join('')}</div><small style="display:block;margin-top:6px">🟠 eşyalarınla ödersin (teminat) · 🔴 eşyalarınla bile ödeyemezsin: 1.000$ ceza, mezattan çıkarsın</small>` : `<div class="wait">${iAud ? 'Mezatçısın, teklif veremezsin.' : (s.players.find(p => p.id === me.id) || {}).dec === 'in' ? 'Ödeyemediğin için bu mezattan çıkarıldın.' : 'Bu mezata katılmadın.'}</div>`}`);
     if (can) { res.act = !mine; res.b = `<div class="panel" style="margin-top:10px"><div class="row" style="margin:0"><input id="cb" type="number" step="100" inputmode="numeric" placeholder="Özel teklif"><button style="flex:0 0 84px" onclick="go('bid',{amt:+$('#cb').value});$('#cb').value=''">Ver</button></div></div>`; }
   } else if (ph === 'pay') {
     if (s.pay.who === me.id) {
@@ -697,17 +705,38 @@ function panels() {
 const PEEK_TXT = { before: 'Katılımdan önce (herkes)', after: 'Katılımdan sonra (sadece katılanlar)', never: 'Yok (sadece mezatçı bakar)' };
 const storageChips = st => st ? `<span>📦 <b>${st.items}</b> eşya</span><span>${st.open ? '🔓 Bir eşya açılır' : '🔒 Açılan eşya yok'}</span><span>👁 Gizlice bak: <b>${PEEK_TXT[st.peek] || '-'}</b></span>` : '';
 const seatsHTML = () => S.players.map(p => `<div class="seat ${p.id === S.me.id ? 'me' : ''} ${p.id === S.aud ? 'aud' : ''} ${p.id === S.cur ? 'cur' : ''} ${p.out ? 'out' : ''} ${!p.on ? 'off' : ''}" id="seat-${p.id}" style="--ac:${avCol(p.av)}">${p.id === S.aud ? '<img class="mini" src="cards/mezatci.jpg" alt="Mezatçı">' : ''}${avHTML(p)}<div><b>${esc(p.name)}${p.out ? ' 💀' : ''}</b><small>${p.n} eşya${!p.on ? ' · çevrimdışı' : ''}</small></div><span class="dc">${p.dec === 'in' ? '✅' : p.dec === 'out' ? '❌' : p.id === S.cur ? '👉' : ''}</span></div>`).join('') + (S.nSpec ? `<small style="flex:1 1 100%;padding:2px 6px">👀 ${S.nSpec} izleyici</small>` : '');
+/* ---------- Masaüstünde oyun ekranını pencereye göre ölçekle ---------- */
+let UI = 1, uiDirty = true; // UI: ölçek katsayısı (animasyon hesapları buna bölünür)
+function fitUI() { // yerleşim "yerel" px'te kurulur, sonra scale(k) ile pencereye sığdırılır: pencere büyüdükçe tasarım da büyür, yükseklikte kaydırma çubuğu çıkmaz
+  const g = $('#game'); if (!g || g.hidden) return;
+  const W = innerWidth, H = innerHeight;
+  if (W < 900) { g.style.cssText = ''; g.classList.remove('xl'); UI = 1; return; } // telefon / dar pencere: eski düzen
+  let k = 1;
+  for (const xl of [true, false]) { // önce geniş (xl) düzeni dene; yerel genişlik 1500'den azsa normal düzene dön
+    g.classList.toggle('xl', xl); k = Math.min(W / 1100, 2.2);
+    for (let i = 0; i < 4; i++) { // genişlik ve yükseklik birbirini etkiler: birkaç turda yakınsar
+      g.style.cssText = `transform-origin:0 0;width:${Math.min(W / k, 1900)}px`;
+      k = Math.max(0.6, Math.min(W / 1100, 2.2, H / (g.offsetHeight + 24))); // 24px pay: depo bilgisi bir satır uzarsa taşmasın
+    }
+    if (!xl || W / k >= 1500) break;
+  }
+  const wl = Math.min(W / k, 1900);
+  g.style.cssText = `transform-origin:0 0;transform:scale(${k});width:${wl}px;height:${Math.floor(H / k)}px;margin:0 0 0 ${Math.max(0, (W - wl * k) / 2)}px`;
+  UI = k;
+}
 function fitHand() { // eşyalarım şeridi: sığmayan kartlar gizlenir, yerine "+N" düğmesi çıkar (kaydırma çubuğu yok; düğme tüm kartların pencere halini açar)
   const hf = $('#hand .hf'); if (!hf || !hf.clientWidth) return;
   const cs = [...hf.querySelectorAll('.hc')], more = hf.querySelector('.hmore'); if (!more) return;
   cs.forEach(c => c.hidden = false); more.hidden = true;
-  const right = () => hf.getBoundingClientRect().right - parseFloat(getComputedStyle(hf).paddingRight);
-  const last = cs.filter(c => !c.hidden).pop(); if (!last || last.getBoundingClientRect().right <= right() + .5) return;
+  const wrap = getComputedStyle(hf).flexWrap !== 'nowrap', cr = getComputedStyle(hf); // masaüstünde kartlar satırlara dizilir (alt kenara sığanlar görünür), telefonda tek satır (sağ kenara sığanlar)
+  const lim = () => { const r = hf.getBoundingClientRect(); return wrap ? r.bottom - parseFloat(cr.paddingBottom) * UI : r.right - parseFloat(cr.paddingRight) * UI; };
+  const edge = el => { const r = el.getBoundingClientRect(); return wrap ? r.bottom : r.right; };
+  const last = cs.filter(c => !c.hidden).pop(); if (!last || edge(last) <= lim() + .5) return;
   more.hidden = false; let n = cs.length;
-  while (n > 1 && more.getBoundingClientRect().right > right() + .5) cs[--n].hidden = true;
+  while (n > 1 && edge(more) > lim() + .5) cs[--n].hidden = true;
   more.textContent = '+' + (cs.length - n);
 }
-addEventListener('resize', () => { if (S && S.me) fitHand(); });
+addEventListener('resize', () => { if (S && S.me && !$('#game').hidden) { fitUI(); fitHand(); } });
 function renderHand() {
   if (!S || !S.me) return;
   if (S.me.spec) return zone('hand', ''); // izleyicinin eli yok
@@ -755,6 +784,7 @@ function renderGame() {
     if (p.act && !(prevS.phase === s.phase && prevS.turn === s.turn && prevS.cur === s.cur)) { try { vib && navigator.vibrate && navigator.vibrate(40); } catch (e) {} }
   }
   if (tour === null && !tourSeen()) tourStart(); else tourDraw();
+  if (uiDirty) { uiDirty = false; fitUI(); fitHand(); } // oyuna her girişte bir kez: içerik çizildikten sonra ölçeği hesapla
   ambSync();
   tick();
 }
@@ -762,7 +792,7 @@ function render() {
   const inGame = S && !['lobby', 'over'].includes(S.phase);
   $('#game').hidden = !inGame; $('#menu').hidden = inGame; $('#menu').classList.toggle('wide', !S || ['lobby', 'over'].includes(S.phase)); if (!inGame) $('#pause').classList.remove('on');
   if (inGame) { openRk.clear(); return renderGame(); }
-  lotKey = resKey = null; handIds = null; hold = new Set(); zc.hand = zc.hud = zc.pA = zc.pB = zc.pH = zc.seats = null; tour = null; tourDraw(); ambSync(); $('#bag').classList.remove('on'); $('#payw').classList.remove('on');
+  lotKey = resKey = null; handIds = null; hold = new Set(); zc.hand = zc.hud = zc.pA = zc.pB = zc.pH = zc.seats = null; tour = null; tourDraw(); ambSync(); $('#bag').classList.remove('on'); $('#payw').classList.remove('on'); uiDirty = true;
   if (S && S.phase === 'over' && (!prevS || prevS.phase !== 'over')) sfx.win();
   if (S && S.phase === 'over') recStats();
   zone('menu', menuHTML());

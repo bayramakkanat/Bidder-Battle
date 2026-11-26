@@ -112,6 +112,7 @@ const emit = r => {
   (r.specs || []).forEach(p => { if (p.on && p.sid) io.to(p.sid).emit('state', view(r, p)); }); // izleyiciler
 };
 
+const note = r => t => [...r.players, ...(r.specs || [])].forEach(p => { if (p.on && p.sid && !p.bot) io.to(p.sid).emit('note', t); }); // herkese kısa bildirim (ceza, eleme gibi önemli olaylar; günlük ekranda görünmediği için)
 // Aşamada karar vermesi beklenen oyuncular
 function who(r) {
   if (r.phase === 'prep') return [r.aud];
@@ -191,7 +192,8 @@ function failPay(r, w) { // ödeyemedi: 1000$ ceza, mezat onsuz yeniden başlar
     const cash = Math.min(w.money, PENALTY), rest = PENALTY - cash;
     w.money -= cash; a.money += cash; if (rest) take(w, a, autoPick(w, rest));
     log(r, `${w.name} ${fmt(price)} bedelini ödeyemedi, ${fmt(PENALTY)} ceza ödedi. Mezat ${w.name} olmadan baştan başlıyor.`);
-  } else { a.money += w.money; w.money = 0; w.eliminated = true; w.items.forEach(c => r.discard.push(c)); w.items = []; log(r, `${w.name} ödeyemedi ve cezayı da karşılayamadı: oyundan elendi.`); }
+    note(r)(`${w.name} ${fmt(price)} bedelini ödeyemedi: ${fmt(PENALTY)} ceza ödedi, mezat onsuz yeniden başlıyor.`);
+  } else { a.money += w.money; w.money = 0; w.eliminated = true; w.items.forEach(c => r.discard.push(c)); w.items = []; log(r, `${w.name} ödeyemedi ve cezayı da karşılayamadı: oyundan elendi.`); note(r)(`${w.name} ${fmt(price)} bedelini ödeyemedi, cezayı da karşılayamadı: oyundan elendi.`); }
   r.bidders = r.bidders.filter(id => id !== w.id); r.sale = null;
   if (!r.bidders.length) return finish(r, { text: 'Teklif verecek kimse kalmadı, depo ıskartaya.' });
   startBid(r, r.bidders);
