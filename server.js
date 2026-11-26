@@ -14,9 +14,10 @@ app.get('/cards.json', (q, s) => { // kart görsellerinin listesi (istemci arka 
 });
 app.get('/catalog.json', (q, s) => s.set('Cache-Control', 'public, max-age=300').json(CATALOG)); // "Kartlar" bölümü: tüm eşya / olay kartları ve depo çeşitleri (adetleriyle)
 const CATALOG = { items: ITEMS.map(({ name, kind, value, effect, img }) => ({ name, kind, value, effect, img })), storages: Object.values(STORAGES.reduce((m, c) => { (m[c.name] = m[c.name] || { name: c.name, items: c.items, open: c.open, peek: c.peek, img: c.img, n: 0 }).n++; return m; }, {})) };
-const STATIC = ['manifest.webmanifest', 'sw.js', 'icon.svg', 'icon-192.png', 'icon-512.png', 'apple-touch-icon.png'];
+const STATIC = ['manifest.webmanifest', 'sw.js']; // sw.js ve manifest kökte kalmalı (PWA kapsamı); ikonlar icons/ altında
 STATIC.forEach(f => app.get('/' + f, (q, s) => s.sendFile(__dirname + '/' + f, err => { if (err && !s.headersSent) s.status(404).end(); })));
 const fs = require('fs');
+app.use('/icons', express.static(__dirname + '/icons', { maxAge: '7d' }));
 app.use('/cards', (q, s, next) => { // tarayıcı WebP destekliyorsa ve .webp dosyası varsa, .jpg isteklerine WebP gönder (görünüm aynı, boyut ~yarı)
   const m = /^\/([a-z0-9-]+)\.jpg$/i.exec(q.path);
   if (m && /image\/webp/.test(q.headers.accept || '') && fs.existsSync(__dirname + '/cards/' + m[1] + '.webp')) return s.set({ 'Vary': 'Accept', 'Cache-Control': 'public, max-age=604800' }).type('image/webp').sendFile(__dirname + '/cards/' + m[1] + '.webp');

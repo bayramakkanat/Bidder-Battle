@@ -24,7 +24,7 @@ Verdiği `https://….trycloudflare.com` adresini arkadaşlarına gönder. Bilgi
 ## Telefona uygulama gibi kurma (PWA)
 - **Android (Chrome):** menü ▸ "Ana ekrana ekle / Uygulamayı yükle". Tam ekran açılır.
 - **iPhone (Safari):** Paylaş ▸ "Ana Ekrana Ekle". Çubuksuz tam ekran açılır.
-- PWA için klasörde `icon-192.png`, `icon-512.png` ve `apple-touch-icon.png` bulunmalı.
+- PWA için `icons/` klasöründe `icon.svg`, `icon-192.png`, `icon-512.png` ve `apple-touch-icon.png` bulunmalı.
 - Kurulum yalnızca **https** adreslerinde (Render / tünel) görünür; `localhost` dışında düz http'de çalışmaz.
 
 ## Dosyalar
@@ -33,7 +33,11 @@ Verdiği `https://….trycloudflare.com` adresini arkadaşlarına gönder. Bilgi
 | `server.js` | Oyun kuralları, odalar, botlar (Node + socket.io) |
 | `data.js` | Kart listesi (59 eşya/olay, 16 depo) |
 | `index.html` | Tüm arayüz |
-| `cards/` | Kart görselleri |
-| `manifest.webmanifest`, `sw.js`, `icon*.png` | PWA |
+| `cards/` | Kart görselleri (`.webp` + `.jpg` yedek; kod `.jpg` ister, sunucu WebP gönderir) |
+| `avatars/` | Oyuncu / bot yüzleri (`01.webp` … `24.webp`; ilk 6 botlara ayrılır) |
+| `icons/` | PWA ve sekme simgeleri |
+| `manifest.webmanifest`, `sw.js` | PWA (kökte kalmalı) |
+| `test-sim.js` | Otomatik duman testi (`npm test`) |
 | `render.yaml` | Render kurulum ayarı |
-| `TODO.md` | Yapılacaklar listesi |
+| `docs/TODO.md` | Yapılacaklar ve test listesi |
+| `docs/AVATAR-PROMPTLARI.md` | Avatar üretim rehberi |

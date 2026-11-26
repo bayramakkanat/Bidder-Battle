@@ -9,14 +9,15 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Depo Savaşları">
 <link rel="manifest" href="/manifest.webmanifest">
-<link rel="icon" href="/icon.svg" type="image/svg+xml">
-<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<link rel="icon" href="/icons/icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
 <title>Depo Savaşları</title>
 <style>
 :root{--bg:#0b1220;--pn:#141d30;--pn2:#1b2640;--ln:#2a3857;--tx:#eef2f8;--mu:#a7b3cc;--am:#f6c445;--am2:#ffdc7a;--tl:#2fd0df;--gr:#35c46c;--rd:#e5484d;--cw:5/7}
-*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent;scrollbar-width:thin;scrollbar-color:#3a4a6e transparent}
 [hidden]{display:none!important}
 html,body{margin:0;min-height:100%}
+@media(min-width:900px){html.ingame,html.ingame body{height:100%;overflow:hidden}} /* oyun sırasında bilgisayarda sayfa kaydırma çubuğu yok (ekran ölçekle sığdırılır, bkz. fitUI) */
 body{background:radial-gradient(1200px 600px at 50% -10%,#1f3558 0,transparent 60%),repeating-linear-gradient(180deg,#0e1727 0 14px,#0b1220 14px 16px);background-attachment:fixed;color:var(--tx);font:15px/1.35 "Segoe UI",system-ui,-apple-system,Roboto,sans-serif;padding:env(safe-area-inset-top) 0 env(safe-area-inset-bottom);overflow-x:hidden}
 h1,h2,.ttl{font-family:Impact,"Arial Narrow Bold","Arial Black",sans-serif;letter-spacing:.04em;text-transform:uppercase;margin:0;font-weight:400}
 small{color:var(--mu)}b{font-weight:700}
@@ -68,16 +69,17 @@ label.l{display:block;font-size:12px;color:var(--mu);margin:10px 0 4px;text-tran
 .ov-side,.ov-main,.lob-l,.lob-r{display:grid;gap:10px;align-content:start;min-width:0}
 .ov-side .panel,.ov-main .panel,.lob-l .panel,.lob-r .panel{margin:0}
 .ov-set{display:grid;gap:2px}.ov-set:empty{display:none}
-.ov-cta{position:sticky;bottom:0;z-index:4;display:grid;gap:2px;padding:14px 0 8px;background:linear-gradient(#0b122000,#0b1220 30%)}
+.ov-cta{position:sticky;bottom:0;z-index:4;display:grid;grid-template-columns:3fr 2fr;gap:10px;align-items:center;padding:14px 0 8px;background:linear-gradient(#0b122000,#0b1220 30%)}
 .lob-foot{text-align:center}
 .rk{background:linear-gradient(var(--pn2),var(--pn));border:1px solid var(--ln);border-radius:14px;box-shadow:0 6px 18px #0004,inset 5px 0 0 var(--ac,transparent);overflow:hidden}
-.rk.first{border-color:var(--am)}.rk.out{opacity:.65}
+.rk.first{border-color:var(--am)}.rk.out{opacity:.65}.rk.me{background:linear-gradient(#25365b,#1a2745)}
 .rk>summary,.rk>.rks{display:grid;grid-template-columns:34px 38px minmax(0,1fr) auto;gap:6px 10px;align-items:center;padding:10px 12px;list-style:none}
 .rk>summary{cursor:pointer}.rk>summary::-webkit-details-marker{display:none}
 .rk .no{font:400 28px Impact,sans-serif;color:var(--am);text-align:center}
 .rk .rn{min-width:0}.rk .rn b,.rk .rn small{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .rk .tot{font:400 24px Impact,sans-serif;color:var(--gr);white-space:nowrap}
-.rk>summary .tot:after{content:" ▾";font:12px "Segoe UI",sans-serif;color:var(--mu)}.rk[open]>summary .tot:after{content:" ▴"}
+.rk>summary .tot:after{content:"▾";font:14px "Segoe UI",sans-serif;color:var(--mu);display:inline-block;width:20px;text-align:right}.rk[open]>summary .tot:after{content:"▴"}
+.rk>.rks .tot:after{content:"";display:inline-block;width:20px}
 .rk .th{grid-column:3/-1;display:flex;align-items:center;gap:4px}
 .rk .tn{width:32px;aspect-ratio:var(--cw);object-fit:cover;border-radius:7%/5%;box-shadow:0 2px 6px #0009}
 .rk .more{font-size:12px;font-weight:700;color:var(--mu);margin-left:2px}
@@ -104,18 +106,26 @@ label.l{display:block;font-size:12px;color:var(--mu);margin:10px 0 4px;text-tran
 .pd.p1{--pc:#f6c445}.pd.p1 .blk{height:84px}.pd.p2{--pc:#c3ccdb}.pd.p2 .blk{height:60px}.pd.p3{--pc:#c98a52}.pd.p3 .blk{height:44px}
 @media(min-width:900px){
  #menu.wide{max-width:1080px}
- .over{grid-template-columns:340px minmax(0,1fr);gap:14px 20px;align-items:start}
+ .over{grid-template-columns:340px minmax(0,1fr);gap:14px 20px;align-items:stretch}
  .ov-head,.ov-set,.ov-cta,.lob-head,.lob-foot{grid-column:1/-1}
  .ov-side{grid-column:1;grid-row:2}.ov-main{grid-column:2;grid-row:2}
- .rk>summary,.rk>.rks{grid-template-columns:40px 42px minmax(0,1fr) auto auto;padding:12px 16px}
- .rk .th{grid-column:4;grid-row:1}.rk .tot{grid-column:5;grid-row:1}
+ .ov-head{justify-content:center}
+ .ov-side,.ov-main{display:flex;flex-direction:column} /* iki sütun aynı yükseklikte: podyum paneli uzar, "en iyi mezat" şeridi sağ sütunun altına yaslanır */
+ .ov-side .winner{flex:1;display:flex;flex-direction:column}.ov-side .winner .podium{margin-top:auto;padding-top:14px}
+ .ov-main .rk{flex:none}.ov-main .stats{margin-top:auto}
+ .pd{max-width:150px}.pd.p1 .blk{height:104px}.pd.p2 .blk{height:76px}.pd.p3 .blk{height:54px}
+ .ov-set{grid-template-columns:repeat(2,minmax(0,1fr));gap:0 20px}.ov-set>div:only-child{grid-column:1/-1}
+ .rk>summary,.rk>.rks{grid-template-columns:44px 46px minmax(0,1fr) 208px 132px;padding:12px 16px;min-height:76px} /* sabit sütunlar: kart şeridi ve toplam tutarlar alt alta hizalanır */
+ .rk .th{grid-column:4;grid-row:1}.rk .tot{grid-column:5;grid-row:1;text-align:right}.rk .tn{width:36px}
  .lob{grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:14px 20px;align-items:start}
 }
 .home{display:grid;gap:10px}.home .panel{margin:0}
-@media(min-width:900px){ /* ana menü: üstte ortalı başlık, altta eşit yükseklikte iki panel (sol: ad + avatar, sağ: oyun modu), en altta ortalı bağlantılar */
- .home{grid-template-columns:minmax(0,1fr) minmax(0,1fr);grid-template-areas:"logo logo" "who mode" "links links";gap:18px 28px;align-items:stretch}
+.h-sec{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:12px}
+.h-sec button{display:flex;flex-direction:column;align-items:center;gap:4px;padding:12px 6px;font-size:14px}.h-sec button span{font-size:22px;line-height:1}
+@media(min-width:900px){ /* ana menü: üstte ortalı başlık, altta eşit yükseklikte iki panel (sol: ad + avatar, sağ: oyun modu + başlat düğmesi + Nasıl oynanır / Kartlar / Tam ekran düğmeleri) */
+ .home{grid-template-columns:minmax(0,1fr) minmax(0,1fr);grid-template-areas:"logo logo" "who mode";gap:18px 28px;align-items:stretch}
  .h-logo{grid-area:logo;margin:0 0 6px;justify-content:center}.h-logo>div{text-align:left}
- .h-who{grid-area:who}.h-mode{grid-area:mode;display:flex;flex-direction:column}.h-mode>.cta:last-child{margin-top:auto}.h-links{grid-area:links}
+ .h-who{grid-area:who}.h-mode{grid-area:mode;display:flex;flex-direction:column}
  .h-logo img{width:120px}.h-logo h1{font-size:64px}
 }
 @media(prefers-reduced-motion:reduce){.confetti{display:none}}
@@ -226,7 +236,7 @@ label.l{display:block;font-size:12px;color:var(--mu);margin:10px 0 4px;text-tran
 @keyframes bob{50%{transform:rotate(-4deg) translateY(-5px)}}
 @media(min-width:900px){
  #game{max-width:1900px;display:grid;grid-template-columns:minmax(0,1fr) 380px;grid-template-areas:"hud hud" "stage act" "stage seats" "stage hand";grid-template-rows:auto auto auto minmax(170px,1fr);gap:12px}
- #hud{grid-area:hud}#stage{grid-area:stage;padding:18px;display:flex;flex-direction:column;justify-content:space-evenly}#act{grid-area:act}#info{display:contents}#seats{grid-area:seats}
+ #hud{grid-area:hud}#stage{grid-area:stage;padding:18px;display:flex;flex-direction:column;justify-content:space-evenly}#act{grid-area:act}#info{display:contents}#seats{grid-area:seats;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}#seats>small{grid-column:1/-1}#seats .seat:last-child:nth-child(odd){grid-column:1/-1}
  #hand{grid-area:hand;display:flex;min-height:0}#hand .panel{flex:1;display:flex;flex-direction:column;min-height:0;margin:0} /* Eşyalarım sağ sütunda kalan yüksekliği doldurur; kartlar satırlara dizilir, sığmayanlar "+N" olur */
  .hf{flex:1 1 0px;min-height:0;flex-wrap:wrap;align-content:flex-start;align-items:flex-start;gap:8px;padding:12px 10px 8px}.hf .empty{margin:auto}
  .hc,.hmore{width:calc((100% - 24px)/4);margin:0}
@@ -534,8 +544,6 @@ function recStats() { // oyun sonunda bir kez: oda kodu + oyun no ile aynı oyun
   t.games++; if (!mine.out && top !== null && mine.total === top) t.wins++; if (mine.total > t.best) t.best = mine.total; t.last = key;
   try { localStorage.setItem('bbStats', JSON.stringify(t)); } catch (e) {}
 }
-const statsLine = () => { const t = myStats(); return t && t.games ? `<div style="margin-bottom:6px"><small>📊 ${t.games} oyun · ${t.wins} galibiyet · en yüksek ${fmt(t.best)}</small> <button class="link" style="padding:4px;font-size:12px" onclick="resetStats()">sıfırla</button></div>` : ''; };
-const resetStats = () => { if (confirm('Kişisel istatistikler silinsin mi?')) { localStorage.removeItem('bbStats'); zc.menu = null; render(); } };
 /* ---------- Menü ekranları ---------- */
 const startSolo = () => { localStorage.removeItem('bb'); go('solo', { name: nameDraft, bots: nBots, diff: diffDraft, speed: speedDraft, av: avDraft, rnd: avRnd }); };
 const DIFFS = [['kolay', '😊 Kolay'], ['normal', '🙂 Normal'], ['zor', '😈 Zor']];
@@ -554,7 +562,7 @@ const plHTML = p => `<div class="pl">${avHTML(p)}<b>${esc(p.name)}</b>${p.id ===
 const seriesHTML = s => { const mx = s.series.rows.length ? s.series.rows[0].n : 0; return `<div class="panel series"><small>SERİ SKORU · ${s.series.games} OYUN</small>${s.series.rows.map(r => { const ld = r.n > 0 && r.n === mx; return `<div class="sr${ld ? ' lead' : ''}"><span>${ld ? '👑' : ''}</span>${avHTML(r, 'sm')}<b>${esc(r.name)}${r.id === s.me.id ? ' (sen)' : ''}</b><i>${r.n}</i></div>`; }).join('')}</div>`; };
 const openRk = new Set(), toggleRk = (id, on) => on ? openRk.add(id) : openRk.delete(id); // sıralamada açılan oyuncu satırları
 const rankHTML = (s, p, i) => {
-  const top = p.items.slice().sort((a, b) => b.value - a.value), th = top.slice(0, 4), cls = `rk${i === 0 && !p.out ? ' first' : ''}${p.out ? ' out' : ''}`;
+  const top = p.items.slice().sort((a, b) => b.value - a.value), th = top.slice(0, 4), cls = `rk${i === 0 && !p.out ? ' first' : ''}${p.out ? ' out' : ''}${p.id === s.me.id ? ' me' : ''}`;
   const head = `<div class="no">${p.out ? '💀' : i + 1}</div>${avHTML(p)}<div class="rn"><b>${esc(p.name)}${p.id === s.me.id ? ' (sen)' : ''}</b><small>Para ${fmt(p.money)} + Eşya ${fmt(p.iv)} · ${p.items.length} eşya${p.out ? ' · elendi' : ''}</small></div><div class="tot">${fmt(p.total)}</div>${th.length ? `<div class="th">${th.map(c => `<img class="tn" src="${cardUrl(c)}" alt="${esc(c.name)}" loading="lazy">`).join('')}${top.length > th.length ? `<span class="more">+${top.length - th.length}</span>` : ''}</div>` : ''}`;
   return top.length ? `<details class="${cls}" style="--ac:${avCol(p.av)}" ${openRk.has(p.id) ? 'open' : ''} ontoggle="toggleRk('${p.id}',this.open)"><summary title="Kartları göster / gizle">${head}</summary><div class="fan">${top.map(c => `<div class="hc" data-z="${cardUrl(c)}"><img src="${cardUrl(c)}" alt="${esc(c.name)}" loading="lazy"></div>`).join('')}</div></details>` : `<div class="${cls}" style="--ac:${avCol(p.av)}"><div class="rks">${head}</div></div>`;
 };
@@ -584,7 +592,7 @@ function menuHTML() {
   <div class="panel h-mode"><div class="tabs"><button class="tab ${mode === 'solo' ? 'on' : ''}" onclick="setMode('solo')">🤖 Botlara karşı</button><button class="tab ${mode === 'online' ? 'on' : ''}" onclick="setMode('online')">🌐 Online</button></div>
   ${mode === 'solo' ? `<label class="l">Rakip sayısı</label><div class="pills">${[2, 3, 4, 5, 6].map(n => `<button class="pill ${n === nBots ? 'on' : ''}" onclick="setBots(${n})">${n}</button>`).join('')}</div><label class="l">Bot zorluğu</label>${diffPills(diffDraft, 'setDiffDraft')}<label class="l">Oyun hızı (süreler)</label>${speedPills(speedDraft, 'setSpeedDraft')}<button class="cta" onclick="startSolo()">🔨 Oyuna başla</button>`
     : `<button class="cta" onclick="go('create',{name:nameDraft,av:avDraft,rnd:avRnd})">➕ Yeni oda kur</button><div class="or">— veya arkadaşının kodunu gir —</div><input placeholder="ODA KODU" maxlength="4" value="${esc(codeDraft)}" style="text-transform:uppercase;text-align:center;letter-spacing:.3em;font-weight:800" oninput="codeDraft=this.value"><div class="row"><button class="alt" onclick="go('join',{name:nameDraft,code:codeDraft,av:avDraft,rnd:avRnd})">Odaya katıl</button></div>`}
-  </div><div class="center h-links">${statsLine()}<button class="link" onclick="rules(1)">📖 Nasıl oynanır?</button><button class="link" onclick="catalog(1)">🃏 Kartlar</button><button class="link" onclick="toggleFs()">⛶ Tam ekran</button></div></div>`;
+  <div class="h-sec"><button class="alt" onclick="rules(1)"><span>📖</span>Nasıl oynanır?</button><button class="alt" onclick="catalog(1)"><span>🃏</span>Kartlar</button><button class="alt" onclick="toggleFs()"><span>⛶</span>Tam ekran</button></div></div></div>`;
   if (s.phase === 'lobby') {
     const host = s.host === s.me.id, meP = s.players.find(p => p.id === s.me.id);
     return `<div class="lob"><div class="logo lob-head"><h1 style="font-size:34px">Oda <span>hazır</span></h1></div><div class="lob-l"><div class="panel"><small>ODA KODU</small><div class="code">${s.code}</div><button class="alt cta" onclick="copyLink()">🔗 Davet bağlantısını kopyala</button></div><div class="panel"><small>AVATARIN</small>${avPicker(meP ? meP.av : avDraft, new Set(s.players.filter(p => p.id !== s.me.id).map(p => p.av)))}</div></div><div class="lob-r">
@@ -594,8 +602,8 @@ function menuHTML() {
   }
   const f = s.final, host = s.host === s.me.id, st = s.stats || {};
   const conf = Array.from({ length: 30 }, (_, i) => `<i style="left:${(i * 37 + 5) % 100}%;background:${['#f6c445', '#2fd0df', '#35c46c', '#e5484d', '#fff'][i % 5]};animation-delay:${(i * 13 % 20) / 10}s;animation-duration:${(2.4 + (i * 7 % 10) / 5).toFixed(1)}s"></i>`).join('');
-  return `<div class="confetti">${conf}</div><div class="over"><div class="logo ov-head"><h1 style="font-size:40px">🏆 Oyun <span>bitti</span></h1></div><div class="ov-side">${podiumHTML(s, f)}${statsHTML(st)}${s.series ? seriesHTML(s) : ''}</div><div class="ov-main">${f.map((p, i) => rankHTML(s, p, i)).join('')}</div>
-  <div class="ov-set">${host ? '<label class="l">Oyun hızı (süreler)</label>' + speedPills(s.speed, 'setSpeedHost') : ''}${host && f.some(p => p.bot) ? '<label class="l">Bot zorluğu</label>' + diffPills(s.diff, 'setDiffHost') : ''}</div><div class="ov-cta">${host ? '<button class="cta" onclick="go(\'start\')">🔁 Yeni oyun</button>' : '<div class="wait">Kurucunun yeni oyun başlatması bekleniyor…</div>'}<div class="center"><button class="link" onclick="leave()">Ana menü</button></div></div></div>`;
+  return `<div class="confetti">${conf}</div><div class="over"><div class="logo ov-head"><h1 style="font-size:40px">🏆 Oyun <span>bitti</span></h1></div><div class="ov-side">${podiumHTML(s, f)}${s.series ? seriesHTML(s) : ''}</div><div class="ov-main">${f.map((p, i) => rankHTML(s, p, i)).join('')}${statsHTML(st)}</div>
+  <div class="ov-set">${host ? '<div><label class="l">Oyun hızı (süreler)</label>' + speedPills(s.speed, 'setSpeedHost') + '</div>' : ''}${host && f.some(p => p.bot) ? '<div><label class="l">Bot zorluğu</label>' + diffPills(s.diff, 'setDiffHost') + '</div>' : ''}</div><div class="ov-cta">${host ? '<button class="cta" onclick="go(\'start\')">🔁 Yeni oyun</button>' : '<div class="wait">Kurucunun yeni oyun başlatması bekleniyor…</div>'}<button class="alt cta" onclick="leave()">Ana menü</button></div></div>`;
 }
 
 /* ---------- Masa / animasyonlar ---------- */
@@ -709,7 +717,7 @@ const seatsHTML = () => S.players.map(p => `<div class="seat ${p.id === S.me.id 
 let UI = 1, uiDirty = true; // UI: ölçek katsayısı (animasyon hesapları buna bölünür)
 function fitUI() { // yerleşim "yerel" px'te kurulur, sonra scale(k) ile pencereye sığdırılır: pencere büyüdükçe tasarım da büyür, yükseklikte kaydırma çubuğu çıkmaz
   const g = $('#game'); if (!g || g.hidden) return;
-  const W = innerWidth, H = innerHeight;
+  const W = document.documentElement.clientWidth, H = document.documentElement.clientHeight; // kaydırma çubuğu payı düşülmüş gerçek görünür alan
   if (W < 900) { g.style.cssText = ''; g.classList.remove('xl'); UI = 1; return; } // telefon / dar pencere: eski düzen
   let k = 1;
   for (const xl of [true, false]) { // önce geniş (xl) düzeni dene; yerel genişlik 1500'den azsa normal düzene dön
@@ -790,7 +798,7 @@ function renderGame() {
 }
 function render() {
   const inGame = S && !['lobby', 'over'].includes(S.phase);
-  $('#game').hidden = !inGame; $('#menu').hidden = inGame; $('#menu').classList.toggle('wide', !S || ['lobby', 'over'].includes(S.phase)); if (!inGame) $('#pause').classList.remove('on');
+  document.documentElement.classList.toggle('ingame', !!inGame); $('#game').hidden = !inGame; $('#menu').hidden = inGame; $('#menu').classList.toggle('wide', !S || ['lobby', 'over'].includes(S.phase)); if (!inGame) $('#pause').classList.remove('on');
   if (inGame) { openRk.clear(); return renderGame(); }
   lotKey = resKey = null; handIds = null; hold = new Set(); zc.hand = zc.hud = zc.pA = zc.pB = zc.pH = zc.seats = null; tour = null; tourDraw(); ambSync(); $('#bag').classList.remove('on'); $('#payw').classList.remove('on'); uiDirty = true;
   if (S && S.phase === 'over' && (!prevS || prevS.phase !== 'over')) sfx.win();
