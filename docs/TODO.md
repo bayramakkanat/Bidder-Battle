@@ -21,6 +21,7 @@ Son güncelleme: 2026-11-26 · Tüm maddeler elle denendi, açık hata yok.
 - Sonuç ekranı: podyum, rozetler, seri skoru, sabit sütunlu sıralama
 - Kartlar (katalog), eşya büyütmede gezinme, Eşyalarım penceresi, teminat penceresi
 - İlk kez oynayanlar için ipucu kartı, okunurluk ve geniş monitör düzenlemeleri
+- Avatar seçicide seçili avatar belirgin (büyük önizleme, altın çerçeve, ✓); o an mezatçı olan oyuncunun avatarı papağanın yanında; telefonda üst boşluk azaltıldı (2026-11-27, elle denenmedi)
 
 **Ses**
 - Ses efektleri, ses seviyesi, titreşim, isteğe bağlı mezat ambiyansı (müzik + sıklaşan tik)

@@ -59,8 +59,10 @@ label.l{display:block;font-size:12px;color:var(--mu);margin:10px 0 4px;text-tran
 .av.bot:after{content:"🤖";position:absolute;right:-6px;bottom:-5px;width:18px;height:18px;display:grid;place-items:center;font-size:11px;line-height:1;background:#0b1220;border:1px solid #ffffff33;border-radius:50%}
 .av.sm.bot:after{display:none}.av.xl.bot:after{width:28px;height:28px;font-size:18px;right:-4px;bottom:-2px}
 .avp{display:grid;grid-template-columns:repeat(8,1fr);gap:6px;margin:6px 0 4px}
-.avb{padding:0;aspect-ratio:1;font-size:22px;line-height:1;background:#0d1626;box-shadow:none;border:2px solid transparent;border-radius:12px}.avb:active{box-shadow:none}
-.avb.on{border-color:var(--ac);background:#1b2640}
+.avb{position:relative;opacity:.72;padding:0;aspect-ratio:1;font-size:22px;line-height:1;background:#0d1626;box-shadow:none;border:2px solid transparent;border-radius:12px;transition:transform .12s,opacity .12s}.avb:active{box-shadow:none}
+.avb.on{opacity:1;border-color:var(--am);background:#1b2640;box-shadow:0 0 0 2px var(--am),0 0 14px #f6c44599;transform:scale(1.1);z-index:1} /* seçili avatar: altın çerçeve + parlama + büyüme + ✓ rozeti, diğerleri soluklaşır */
+.avb.on:after{content:"✓";position:absolute;right:-6px;top:-6px;width:20px;height:20px;border-radius:50%;background:var(--am);color:#241a00;font:800 13px/20px sans-serif;text-align:center;box-shadow:0 2px 6px #000a}
+.avsel{display:flex;align-items:center;gap:12px;margin:4px 0 8px}.avsel .av{margin:0}.avsel b{display:block}
 .av>img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;border-radius:50%;display:block}
 .avp.img{grid-template-columns:repeat(6,1fr);gap:8px}.avb img{width:100%;height:100%;object-fit:cover;border-radius:10px;display:block}
 .rxa{width:18px;height:18px;border-radius:50%;object-fit:cover;vertical-align:middle;margin-right:4px}
@@ -143,6 +145,7 @@ label.l{display:block;font-size:12px;color:var(--mu);margin:10px 0 4px;text-tran
 #stage{position:relative;border-radius:20px;border:1px solid var(--ln);padding:12px;background:radial-gradient(120% 90% at 50% 0,#2a4a6b 0,#16233a 55%,#101a2c 100%);box-shadow:inset 0 0 60px #0007,0 10px 30px #0006;overflow:hidden}
 #stage:before{content:"";position:absolute;inset:0;background:repeating-linear-gradient(180deg,#ffffff06 0 3px,transparent 3px 9px);pointer-events:none}
 .auc{display:flex;align-items:center;gap:10px;position:relative}
+.audav{display:grid;justify-items:center;gap:3px;width:58px;flex:none}.audav:empty{display:none}.audav .av{border-color:var(--am)}.audav small{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:11px;font-weight:700;color:var(--am2)} /* o an mezatçı olan oyuncunun avatarı (papağanın yanında) */
 .portrait{width:58px;flex:none;border-radius:10px;overflow:hidden;border:2px solid #fff4;box-shadow:0 4px 12px #0008;aspect-ratio:var(--cw)}
 .portrait img{width:100%;height:100%;object-fit:cover;display:block}
 .portrait.talk{animation:talk .45s}
@@ -234,17 +237,23 @@ label.l{display:block;font-size:12px;color:var(--mu);margin:10px 0 4px;text-tran
 #toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);background:var(--rd);padding:10px 16px;border-radius:12px;display:none;z-index:60;font-weight:700;box-shadow:0 6px 20px #000a}
 #net{position:fixed;top:0;left:0;right:0;padding:calc(env(safe-area-inset-top) + 8px) 12px 8px;text-align:center;font-weight:700;background:var(--rd);color:#fff;display:none;z-index:70;box-shadow:0 4px 14px #0008}#net.ok{background:var(--gr);color:#04210f}
 @keyframes bob{50%{transform:rotate(-4deg) translateY(-5px)}}
+@media(max-width:899px){ /* telefon: üst boşluk ve dikey aralıklar azalır (sayfa daha az kayar) */
+ #game{padding:4px 10px 10px;gap:8px}
+ #hud{padding:6px 8px}
+ #stage{padding:10px}
+ .mid{margin:10px 4px 8px}
+}
 @media(min-width:900px){
- #game{max-width:1900px;display:grid;grid-template-columns:minmax(0,1fr) 380px;grid-template-areas:"hud hud" "stage act" "stage seats" "stage hand";grid-template-rows:auto auto auto minmax(170px,1fr);gap:12px}
+ #game{max-width:1900px;padding:10px;display:grid;grid-template-columns:minmax(0,1fr) 380px;grid-template-areas:"hud hud" "stage act" "stage seats" "stage hand";grid-template-rows:auto auto auto minmax(170px,1fr);gap:12px}
  #hud{grid-area:hud}#stage{grid-area:stage;padding:18px;display:flex;flex-direction:column;justify-content:space-evenly}#act{grid-area:act}#info{display:contents}#seats{grid-area:seats;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}#seats>small{grid-column:1/-1}#seats .seat:last-child:nth-child(odd){grid-column:1/-1}
  #hand{grid-area:hand;display:flex;min-height:0}#hand .panel{flex:1;display:flex;flex-direction:column;min-height:0;margin:0} /* Eşyalarım sağ sütunda kalan yüksekliği doldurur; kartlar satırlara dizilir, sığmayanlar "+N" olur */
  .hf{flex:1 1 0px;min-height:0;flex-wrap:wrap;align-content:flex-start;align-items:flex-start;gap:8px;padding:12px 10px 8px}.hf .empty{margin:auto}
  .hc,.hmore{width:calc((100% - 24px)/4);margin:0}
- .lot{--w:min(150px,calc((100% - (var(--n) - 1)*10px)/var(--n)))}.stor{width:190px}.pile{width:84px}.portrait{width:74px}.bubble{font-size:16px}
+ .lot{--w:min(150px,calc((100% - (var(--n) - 1)*10px)/var(--n)))}.stor{width:190px}.pile{width:84px}.portrait{width:74px}.audav{width:74px}.audav .av.md{width:68px;height:68px;font-size:36px}.audav small{font-size:12px}.bubble{font-size:16px}
 }
 @media(min-width:900px){ /* JS `fitUI` oyun ekranını pencereye göre ölçeklendirir; "yerel" genişlik 1500px ve üzeriyse .xl: daha büyük kartlar ve geniş sağ sütun */
  #game.xl{grid-template-columns:minmax(0,1fr) 440px}
- #game.xl .lot{--w:min(188px,calc((100% - (var(--n) - 1)*12px)/var(--n)))}#game.xl .stor{width:240px}#game.xl .pile{width:104px}#game.xl .portrait{width:92px}#game.xl .bubble{font-size:18px}
+ #game.xl .lot{--w:min(188px,calc((100% - (var(--n) - 1)*12px)/var(--n)))}#game.xl .stor{width:240px}#game.xl .pile{width:104px}#game.xl .portrait{width:92px}#game.xl .audav{width:90px}#game.xl .audav .av.md{width:84px;height:84px;font-size:44px}#game.xl .bubble{font-size:18px}
 }
 @media(min-width:1600px){ /* geniş monitör: menü ve oyun sonu ekranı */
 
@@ -268,7 +277,7 @@ label.l{display:block;font-size:12px;color:var(--mu);margin:10px 0 4px;text-tran
 <div id="game" hidden>
   <div id="hud"></div>
   <div id="stage">
-    <div class="auc"><div class="portrait" id="por"><img src="cards/mezatci.jpg" alt="Mezatçı"></div><div class="bubble" id="bub"></div></div>
+    <div class="auc"><div class="audav" id="audav"></div><div class="portrait" id="por"><img src="cards/mezatci.jpg" alt="Mezatçı"></div><div class="bubble" id="bub"></div></div>
     <div class="mid">
       <div class="pile" id="pS"><div class="stack"><img src="cards/arka-depo.jpg" alt=""><img src="cards/arka-depo.jpg" alt=""><img src="cards/arka-depo.jpg" alt=""></div><span class="cnt" id="cS">0</span><small>DEPO</small></div>
       <div class="stor" id="stor"></div>
@@ -330,7 +339,7 @@ const avIdx = x => (Number.isInteger(x) ? x : 0) % AV.length, avSrc = i => `avat
 const avFace = i => AVF.has(i) ? `<img src="${avSrc(i)}" alt="" onerror="this.replaceWith('${AV[i][0]}')">` : AV[i][0];
 const avHTML = (p, cls = '') => `<div class="av ${cls}${p.bot ? ' bot' : ''}" style="--ac:${avCol(p.av)}">${avFace(avIdx(p.av))}</div>`;
 let avDraft = (x => x !== null && x !== '' && +x >= 0 && +x < AV.length ? Math.floor(+x) : 6 + Math.floor(Math.random() * (AV.length - 6)))(localStorage.getItem('bbAv')); // ilk kez: rastgele (ilk 6 = bot karakterleri hariç)
-const avPicker = (cur, taken) => `<div class="avp${AVF.size ? ' img' : ''}">${AV.map((a, i) => `<button class="avb${i === cur ? ' on' : ''}" style="--ac:${avCol(i)}" ${taken.has(i) ? 'disabled' : ''} onclick="pickAv(${i})" aria-label="Avatar ${i + 1}">${avFace(i)}</button>`).join('')}</div><button class="pill${avRndOn() ? ' on' : ''}" style="width:100%;margin:2px 0 4px" onclick="toggleAvRnd()">🎲 Her oyunda rastgele yüz</button>`;
+const avPicker = (cur, taken) => `<div class="avsel">${avHTML({ av: cur }, 'lg')}<div><b>Seçtiğin avatar</b><small>${avRndOn() ? 'Her oyunda rastgele değişir' : 'Değiştirmek için aşağıdan dokun'}</small></div></div><div class="avp${AVF.size ? ' img' : ''}">${AV.map((a, i) => `<button class="avb${i === cur ? ' on' : ''}" style="--ac:${avCol(i)}" ${taken.has(i) ? 'disabled' : ''} onclick="pickAv(${i})" aria-label="Avatar ${i + 1}">${avFace(i)}</button>`).join('')}</div><button class="pill${avRndOn() ? ' on' : ''}" style="width:100%;margin:2px 0 4px" onclick="toggleAvRnd()">🎲 Her oyunda rastgele yüz</button>`;
 let avRnd = localStorage.getItem('bbAvRnd') === '1'; // "her oyunda rastgele yüz" (ilk 6 bot yüzü hariç); lobide sunucudaki değer geçerli (S.me.rnd)
 const avRndOn = () => S ? !!S.me.rnd : avRnd;
 const setAvRnd = on => { avRnd = on; localStorage.setItem('bbAvRnd', on ? '1' : '0'); if (S) go('setAvRnd', { on }); else { zc.menu = null; render(); } };
@@ -480,7 +489,7 @@ const toast = (m, ms = 2600) => { const t = $('#toast'); t.textContent = m; t.st
       im.onload = () => { try { const c = document.createElement('canvas'); c.width = c.height = 4; const x = c.getContext('2d'); x.drawImage(im, 0, 0, 4, 4); const d = x.getImageData(0, 0, 1, 1).data; AVC[i] = `rgb(${d[0]},${d[1]},${d[2]})`; } catch (e) {} res(); };
       im.onerror = res; im.src = avSrc(i);
     })));
-    AVF = new Set(list); zc.menu = zc.seats = zc.hud = null; render();
+    AVF = new Set(list); zc.menu = zc.seats = zc.hud = zc.audav = null; render();
   } catch (e) {}
 })();
 sock.on('connect', () => { if (sv.code && sv.token) sock.emit('rejoin', sv); });
@@ -780,6 +789,7 @@ function renderGame() {
   const dm = prevS && prevS.me && prevS.gid === s.gid ? me.money - prevS.me.money : 0;
   zone('hud', `<button class="alt ib" onclick="sheet(1)">☰</button><button class="alt ib" onclick="toggleFs()" title="Tam ekran (F)">⛶</button>${!me.spec && s.players.some(p => !p.bot && p.id !== me.id) ? '<button class="alt ib" onclick="reactPanel()" title="Tepki gönder">💬</button>' : ''}${!me.spec && s.players.filter(p => !p.bot).length === 1 ? '<button class="alt ib" onclick="go(\'pause\',{on:true})" title="Duraklat">⏸</button>' : ''}<div class="turn"><small>TUR</small><b>${s.turn}</b>/${s.total}</div><div class="who"><small>MEZATÇI</small><b>${nm(s.aud)}${iAud ? ' (sen)' : ''}</b></div>${me.spec ? '<div class="wallet"><small>DURUM</small><b style="font-size:20px">👀 İZLEYİCİ</b></div>' : `<div class="wallet ${dm > 0 ? 'up' : dm < 0 ? 'down' : ''}"><small>KASA</small><b>${fmt(me.money)}</b></div>`}`);
   $('#cS').textContent = s.decks.storage; $('#cI').textContent = s.decks.item;
+  const au = s.players.find(p => p.id === s.aud); zone('audav', au ? `${avHTML(au, 'md')}<small>${iAud ? 'Sen' : esc(au.name)}</small>` : '');
   syncStage();
   zone('sinfo', storageChips(s.storage));
   const p = panels(); zone('pA', p.a); zone('pB', p.b); $('#act').classList.toggle('act', p.act); payRender();
